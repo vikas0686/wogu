@@ -129,10 +129,13 @@
         <version>${temporal-sdk.version}</version>
       </dependency>
 
-      <!-- Source parsing (JavaParser) -->
+      <!-- Source parsing (JavaParser). Only javaparser-core is needed: WoGu's Temporal
+           validators use import- and annotation-based heuristics rather than full
+           classpath symbol resolution, so the heavier symbol-solver artifact is not
+           required. -->
       <dependency>
         <groupId>com.github.javaparser</groupId>
-        <artifactId>javaparser-symbol-solver-core</artifactId>
+        <artifactId>javaparser-core</artifactId>
         <version>${javaparser.version}</version>
       </dependency>
 

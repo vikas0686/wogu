@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>io.wogu</groupId>
+  <artifactId>wogu-parent</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <name>WoGu Parent</name>
+  <description>
+    WoGu (Workflow Guard) is a static analysis and build validation framework for
+    workflow-based applications. This is the reactor parent for all WoGu modules.
+  </description>
+  <url>https://github.com/wogu-project/wogu</url>
+  <inceptionYear>2026</inceptionYear>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>WoGu Contributors</name>
+      <url>https://github.com/wogu-project/wogu/graphs/contributors</url>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:https://github.com/wogu-project/wogu.git</connection>
+    <developerConnection>scm:git:https://github.com/wogu-project/wogu.git</developerConnection>
+    <url>https://github.com/wogu-project/wogu</url>
+    <tag>HEAD</tag>
+  </scm>
+
+  <issueManagement>
+    <system>GitHub Issues</system>
+    <url>https://github.com/wogu-project/wogu/issues</url>
+  </issueManagement>
+
+  <ciManagement>
+    <system>GitHub Actions</system>
+    <url>https://github.com/wogu-project/wogu/actions</url>
+  </ciManagement>
+
+  <modules>
+    <module>wogu-api</module>
+    <module>wogu-core</module>
+    <module>wogu-temporal</module>
+    <module>wogu-report</module>
+    <module>wogu-maven-plugin</module>
+  </modules>
+
+  <properties>
+    <!-- Build baseline -->
+    <maven.compiler.release>17</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <!-- Dependency versions -->
+    <temporal-sdk.version>1.30.1</temporal-sdk.version>
+    <javaparser.version>3.27.0</javaparser.version>
+    <slf4j.version>2.0.17</slf4j.version>
+    <logback.version>1.5.18</logback.version>
+    <jackson.version>2.18.4</jackson.version>
+    <junit-bom.version>5.12.2</junit-bom.version>
+    <mockito.version>5.18.0</mockito.version>
+    <assertj.version>3.27.3</assertj.version>
+
+    <!-- Maven plugin build tooling -->
+    <maven-core.version>3.9.9</maven-core.version>
+    <maven-plugin-api.version>3.9.9</maven-plugin-api.version>
+    <maven-plugin-annotations.version>3.15.2</maven-plugin-annotations.version>
+    <maven-plugin-plugin.version>3.15.2</maven-plugin-plugin.version>
+
+    <!-- Build plugin versions -->
+    <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+    <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
+    <maven-failsafe-plugin.version>3.5.2</maven-failsafe-plugin.version>
+    <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
+    <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
+    <maven-javadoc-plugin.version>3.10.1</maven-javadoc-plugin.version>
+    <maven-install-plugin.version>3.1.3</maven-install-plugin.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- Inter-module dependencies -->
+      <dependency>
+        <groupId>io.wogu</groupId>
+        <artifactId>wogu-api</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.wogu</groupId>
+        <artifactId>wogu-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.wogu</groupId>
+        <artifactId>wogu-temporal</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.wogu</groupId>
+        <artifactId>wogu-report</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <!-- Test BOM -->
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit-bom.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- Temporal SDK -->
+      <dependency>
+        <groupId>io.temporal</groupId>
+        <artifactId>temporal-sdk</artifactId>
+        <version>${temporal-sdk.version}</version>
+      </dependency>
+
+      <!-- Source parsing (JavaParser) -->
+      <dependency>
+        <groupId>com.github.javaparser</groupId>
+        <artifactId>javaparser-symbol-solver-core</artifactId>
+        <version>${javaparser.version}</version>
+      </dependency>
+
+      <!-- Logging -->
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-classic</artifactId>
+        <version>${logback.version}</version>
+      </dependency>
+
+      <!-- JSON (report model serialization if needed) -->
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+
+      <!-- Maven plugin API -->
+      <dependency>
+        <groupId>org.apache.maven</groupId>
+        <artifactId>maven-plugin-api</artifactId>
+        <version>${maven-plugin-api.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven</groupId>
+        <artifactId>maven-core</artifactId>
+        <version>${maven-core.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven.plugin-tools</groupId>
+        <artifactId>maven-plugin-annotations</artifactId>
+        <version>${maven-plugin-annotations.version}</version>
+      </dependency>
+
+      <!-- Test -->
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <version>${assertj.version}</version>
+        <scope>test</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- Every module gets JUnit 5 + AssertJ for testing, without repeating scope everywhere -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${maven-compiler-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${maven-surefire-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>${maven-failsafe-plugin.version}</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>integration-test</goal>
+                <goal>verify</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>${maven-jar-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>${maven-source-plugin.version}</version>
+          <executions>
+            <execution>
+              <id>attach-sources</id>
+              <goals>
+                <goal>jar-no-fork</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>${maven-javadoc-plugin.version}</version>
+          <configuration>
+            <doclint>none</doclint>
+            <quiet>true</quiet>
+            <failOnError>false</failOnError>
+          </configuration>
+          <executions>
+            <execution>
+              <id>attach-javadocs</id>
+              <goals>
+                <goal>jar</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-install-plugin</artifactId>
+          <version>${maven-install-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-plugin-plugin</artifactId>
+          <version>${maven-plugin-plugin.version}</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <!-- The sample project intentionally contains a workflow that fails validation,
+           to demonstrate a red build. It is excluded from the default reactor so that a
+           plain 'mvn verify' at the repo root stays green; run it explicitly via
+           'mvn -f sample-temporal-project verify' or 'mvn -Pwith-samples verify'. -->
+      <id>with-samples</id>
+      <modules>
+        <module>sample-temporal-project</module>
+      </modules>
+    </profile>
+  </profiles>
+</project>

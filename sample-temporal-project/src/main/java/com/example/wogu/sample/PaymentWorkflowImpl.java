@@ -1,13 +1,14 @@
 package com.example.wogu.sample;
 
-import java.util.UUID;
+import com.example.wogu.sample.services.PaymentService;
 
 public class PaymentWorkflowImpl implements PaymentWorkflow {
 
+  private final PaymentService paymentService = new PaymentService();
+
   @Override
   public String processPayment(String accountId) {
-    // Intentional WoGu demo violation: non-deterministic, breaks workflow replay.
-    String transactionId = UUID.randomUUID().toString();
-    return "Payment " + transactionId + " processed for account " + accountId;
+    String paymentId = paymentService.executeUUIDError();
+    return "Payment " + paymentId + " processed for account " + accountId;
   }
 }

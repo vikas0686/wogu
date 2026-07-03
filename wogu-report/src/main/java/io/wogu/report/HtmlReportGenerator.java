@@ -106,7 +106,7 @@ public final class HtmlReportGenerator {
 
   private String renderValidatorSummary(ValidationSummary summary) {
     StringBuilder section = new StringBuilder();
-    section.append("<section class=\"validators\">\n<h2>Validator Summary</h2>\n");
+    section.append("<section class=\"validators\">\n<h2>Validator Summary</h2>\n<div class=\"table-scroll\">\n");
     section.append("<table>\n<thead><tr><th>Validator</th><th>Status</th><th>Violations</th>"
         + "<th>Execution Time</th></tr></thead>\n<tbody>\n");
     for (ValidationResult result : summary.results()) {
@@ -128,7 +128,7 @@ public final class HtmlReportGenerator {
     if (summary.results().isEmpty()) {
       section.append("<tr><td colspan=\"4\" class=\"empty\">No validators were executed.</td></tr>\n");
     }
-    section.append("</tbody>\n</table>\n</section>\n");
+    section.append("</tbody>\n</table>\n</div>\n</section>\n");
     return section.toString();
   }
 
@@ -139,6 +139,7 @@ public final class HtmlReportGenerator {
     if (violations.isEmpty()) {
       section.append("<p class=\"empty\">No violations found.</p>\n");
     } else {
+      section.append("<div class=\"table-scroll\">\n");
       section.append("<table>\n<thead><tr><th>Severity</th><th>File</th><th>Class</th><th>Line</th>"
           + "<th>Message</th><th>Suggested Fix</th></tr></thead>\n<tbody>\n");
       for (Violation violation : violations) {
@@ -159,7 +160,7 @@ public final class HtmlReportGenerator {
             .append(HtmlEscaper.escape(violation.suggestedFix()))
             .append("</td></tr>\n");
       }
-      section.append("</tbody>\n</table>\n");
+      section.append("</tbody>\n</table>\n</div>\n");
     }
     section.append("</section>\n");
     return section.toString();
@@ -248,8 +249,10 @@ public final class HtmlReportGenerator {
       }
       .card-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
       .card-value { font-size: 20px; font-weight: 600; word-break: break-word; }
-      table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+      .table-scroll { overflow-x: auto; overflow-y: hidden; border: 1px solid var(--border); border-radius: 8px; }
+      table { width: 100%; min-width: 640px; border-collapse: collapse; background: var(--surface); }
       th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 14px; }
+      td { max-width: 320px; overflow-wrap: anywhere; }
       th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
       tr:last-child td { border-bottom: none; }
       td.empty { color: var(--muted); font-style: italic; }

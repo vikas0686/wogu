@@ -27,9 +27,10 @@ wogu-parent          (root aggregator pom.xml)
   wogu-maven-plugin  The wogu:validate Maven goal.
   wogu-gradle-plugin Independent Gradle build; the woguValidate Gradle task.
   sample-temporal-project
-                     A Temporal workflow reaching UUID.randomUUID() through one
-                     intermediate service class; mvn verify intentionally fails here
-                     and writes target/wogu/index.html, showing the full call path.
+                     A Temporal workflow whose service class violates all three rules
+                     (UUID.randomUUID(), Thread.sleep(), System.currentTimeMillis());
+                     mvn verify intentionally fails here and writes target/wogu/index.html,
+                     showing all three violations with their call paths.
 docs/rules/          One Markdown file per rule (see WG001.md for the template).
 ```
 

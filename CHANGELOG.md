@@ -34,6 +34,10 @@ project adheres to [Semantic Versioning](https://semver.org/) (see
 
 - `UUIDRandomValidator`'s WG001-specific `UuidRandomUuidCallTarget` is replaced by the
   generic `StaticMethodCallTarget("java.util.UUID", "randomUUID")`; no behavior change.
+- `sample-temporal-project`'s `PaymentService` now violates all three rules
+  (`UUID.randomUUID()`, `Thread.sleep()`, `System.currentTimeMillis()`, each in its own
+  method called from the workflow), so `mvn verify` now demonstrates all three rules
+  failing together with their individual call paths, instead of only WG001.
 
 - **Rules replace validators as WoGu's primary concept.** `WorkflowValidator` now declares
   `rules(): List<Rule>` and its `validate()` returns a `ValidatorRunOutcome` (one

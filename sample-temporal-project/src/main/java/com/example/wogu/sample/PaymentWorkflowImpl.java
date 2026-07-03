@@ -9,6 +9,8 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
   @Override
   public String processPayment(String accountId) {
     String paymentId = paymentService.executeUUIDError();
-    return "Payment " + paymentId + " processed for account " + accountId;
+    paymentService.waitForSettlement();
+    long processedAt = paymentService.recordTimestamp();
+    return "Payment " + paymentId + " processed for account " + accountId + " at " + processedAt;
   }
 }

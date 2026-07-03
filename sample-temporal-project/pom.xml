@@ -16,8 +16,10 @@
   <name>WoGu Sample: Temporal Project</name>
   <description>
     Demonstrates wogu-maven-plugin against real Temporal Java SDK code. PaymentWorkflowImpl
-    calls UUID.randomUUID(), which breaks workflow replay determinism, so 'mvn verify'
-    intentionally fails here and writes target/wogu/index.html showing the violation.
+    calls into PaymentService, which violates all three Determinism rules
+    (UUID.randomUUID() for WG001, Thread.sleep() for WG002, System.currentTimeMillis() for
+    WG003), so 'mvn verify' intentionally fails here and writes target/wogu/index.html
+    showing all three violations.
 
     This module is intentionally excluded from the repo's default Maven reactor (see the
     root pom's 'with-samples' profile), since it fails by design. Run it explicitly:

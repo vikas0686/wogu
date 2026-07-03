@@ -75,8 +75,8 @@ wires it into `build`.
 
 ## What it looks like
 
-Console output on a build with one violation, reached through one intermediate method
-call — note all three rules run and are reported, even though only one finds anything:
+Console output on a build with violations of all three rules, each reached through one
+intermediate method call:
 
 ```
 ----------------------------------------------------
@@ -89,10 +89,10 @@ Scanning project...
 Running Rules...
 
 ✗ WG001 UUID.randomUUID() inside Workflow
-✓ WG002
-✓ WG003
+✗ WG002 Thread.sleep() inside Workflow
+✗ WG003 Non-deterministic Time APIs inside Workflow
 ----------------------------------------
-1 ERROR
+3 ERROR
 Build FAILED
 
 HTML Report
@@ -101,14 +101,14 @@ target/wogu/index.html
 
 And the HTML report it writes (`target/wogu/index.html` for Maven,
 `build/reports/wogu/index.html` for Gradle), showing all three rules in the Rule Summary
-and the full call path from the workflow's entry point down to the offending call —
-rendered with no report-generator changes, since it reads purely from `Rule` metadata:
+and a call path from the workflow's entry point down to each offending call — rendered
+with no report-generator changes, since it reads purely from `Rule` metadata:
 
-![WoGu report showing a failed build, with the Rule Summary table and a violation card displaying the call path from the workflow entry point down to UUID.randomUUID()](docs/images/report-failed.png)
+![WoGu report showing a failed build with all three Determinism rules failing, each with its own violation card showing the call path from the workflow entry point down to the offending call](docs/images/report-failed.png)
 
 You can reproduce this directly from this repo — see
 [sample-temporal-project](sample-temporal-project), whose workflow method calls into a
-service class that calls `UUID.randomUUID()`:
+service class that violates all three rules:
 
 ```bash
 mvn -f sample-temporal-project verify   # fails by design, writes the report above

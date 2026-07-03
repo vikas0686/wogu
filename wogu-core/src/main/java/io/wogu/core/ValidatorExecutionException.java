@@ -8,9 +8,9 @@ import io.wogu.api.WorkflowValidator;
  *
  * <p>This signals an infrastructure failure (e.g. an unreadable source root, a bug in the
  * validator itself) as distinct from a validation failure. A validator reporting that the
- * code it scanned is wrong should return a {@link io.wogu.api.ValidationResult} containing
- * violations, not throw; this exception exists for the case where the validator could not
- * complete its analysis at all.
+ * code it scanned is wrong should return a {@link io.wogu.api.ValidatorRunOutcome}
+ * containing violations, not throw; this exception exists for the case where the
+ * validator could not complete its analysis at all.
  */
 public final class ValidatorExecutionException extends RuntimeException {
 

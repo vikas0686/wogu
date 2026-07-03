@@ -15,10 +15,12 @@
 
   <name>WoGu API</name>
   <description>
-    Public SPI for WoGu: the WorkflowValidator contract and the immutable model types
-    (ValidationContext, ValidationResult, Violation, Severity) that every workflow-engine
-    integration (Temporal, and future Conductor/Camunda/Airflow modules) is built against.
-    This module has zero dependency on any workflow engine, parser, or build tool.
+    Public SPI for WoGu: the WorkflowValidator contract, the Rule/RuleCategory metadata
+    WoGu is organized around, and the immutable model types (ValidationContext,
+    RuleResult, ValidatorRunOutcome, ValidationSummary, Violation, CallPathFrame,
+    Severity) that every workflow-engine integration (Temporal, and future Conductor/
+    Camunda/Airflow modules) is built against. This module has zero dependency on any
+    workflow engine, parser, or build tool.
   </description>
 
 </project>

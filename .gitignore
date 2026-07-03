@@ -31,3 +31,6 @@ Thumbs.db
 
 # WoGu reports generated during local builds/testing
 wogu-report-output/
+
+# Claude Code: local, per-developer settings (not shared); .claude/agents/ is committed
+.claude/settings.local.json

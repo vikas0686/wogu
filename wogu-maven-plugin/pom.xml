@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.wogu</groupId>
+    <artifactId>wogu-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>wogu-maven-plugin</artifactId>
+  <packaging>maven-plugin</packaging>
+
+  <name>WoGu Maven Plugin</name>
+  <description>
+    Maven plugin exposing the wogu:validate goal, bound by default to the verify phase.
+    Runs the WoGu validation engine against the project's own source, writes an HTML
+    report, and fails the build if a validator finds a build-blocking violation.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-plugin-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-core</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven.plugin-tools</groupId>
+      <artifactId>maven-plugin-annotations</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- WoGu engine, bundled with the plugin so validators are discoverable at runtime
+         without requiring consumers to declare these as project dependencies. -->
+    <dependency>
+      <groupId>io.wogu</groupId>
+      <artifactId>wogu-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.wogu</groupId>
+      <artifactId>wogu-temporal</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.wogu</groupId>
+      <artifactId>wogu-report</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-plugin-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>

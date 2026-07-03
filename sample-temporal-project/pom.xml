@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.wogu</groupId>
+    <artifactId>wogu-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>sample-temporal-project</artifactId>
+  <packaging>pom</packaging>
+
+  <name>WoGu Sample: Temporal Project</name>
+  <description>
+    Demonstrates wogu-maven-plugin against real Temporal Java SDK code. The 'clean'
+    module uses Workflow.randomUUID() and passes 'mvn verify'; the 'violation' module
+    uses UUID.randomUUID() inside a workflow implementation and intentionally fails
+    'mvn verify', with an HTML report written to target/wogu/index.html.
+
+    This aggregator (and its children) is intentionally excluded from the repo's default
+    reactor build (see the root pom's 'with-samples' profile), since 'violation' fails by
+    design. Run it explicitly:
+      mvn -f sample-temporal-project/clean verify
+      mvn -f sample-temporal-project/violation verify
+  </description>
+
+  <modules>
+    <module>clean</module>
+    <module>violation</module>
+  </modules>
+
+</project>

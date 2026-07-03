@@ -9,6 +9,7 @@ import io.wogu.api.ValidationContext;
 import io.wogu.api.ValidationResult;
 import io.wogu.api.Violation;
 import io.wogu.api.WorkflowValidator;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -70,7 +71,7 @@ public final class UUIDRandomValidator implements WorkflowValidator {
     for (ScannedWorkflowClass workflowClass : workflowClasses) {
       for (MethodCallExpr call : workflowClass.declaration().findAll(MethodCallExpr.class)) {
         if (isUuidRandomUuidCall(call, workflowClass.compilationUnit())) {
-          violations.add(toViolation(workflowClass, call));
+          violations.add(toViolation(workflowClass, call, context));
         }
       }
     }
@@ -124,16 +125,29 @@ public final class UUIDRandomValidator implements WorkflowValidator {
     return false;
   }
 
-  private static Violation toViolation(ScannedWorkflowClass workflowClass, MethodCallExpr call) {
+  private static Violation toViolation(ScannedWorkflowClass workflowClass, MethodCallExpr call, ValidationContext context) {
     int line = call.getBegin().map(position -> position.line).orElse(1);
     return Violation.builder()
         .validatorId(ID)
         .severity(Severity.ERROR)
-        .file(workflowClass.file())
+        .file(relativize(context.projectDirectory(), workflowClass.file()))
         .className(workflowClass.qualifiedName())
         .line(line)
         .message(MESSAGE)
         .suggestedFix(SUGGESTED_FIX)
         .build();
+  }
+
+  /**
+   * Renders {@code file} relative to {@code projectDirectory} for readability in reports,
+   * falling back to the original path if the two are not comparable (e.g. different
+   * filesystem roots).
+   */
+  private static Path relativize(Path projectDirectory, Path file) {
+    try {
+      return projectDirectory.toAbsolutePath().normalize().relativize(file.toAbsolutePath().normalize());
+    } catch (IllegalArgumentException e) {
+      return file;
+    }
   }
 }

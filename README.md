@@ -51,9 +51,9 @@ them required a change to `wogu-core`, `wogu-report`, or either build-tool plugi
 
 ```xml
 <plugin>
-  <groupId>io.wogu</groupId>
+  <groupId>io.github.vikas0686</groupId>
   <artifactId>wogu-maven-plugin</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.1.0</version>
   <executions>
     <execution>
       <goals>

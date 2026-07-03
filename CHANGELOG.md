@@ -170,5 +170,5 @@ Initial proof-of-concept release.
   `UUID.randomUUID()`, intentionally failing `mvn verify` and demonstrating the
   generated HTML report end-to-end.
 
-[Unreleased]: https://github.com/wogu-project/wogu/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/wogu-project/wogu/releases/tag/v0.1.0
+[Unreleased]: https://github.com/vikas0686/wogu/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/vikas0686/wogu/releases/tag/v0.1.0

@@ -5,9 +5,9 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>io.wogu</groupId>
+    <groupId>io.github.vikas0686</groupId>
     <artifactId>wogu-parent</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
   </parent>
 
   <artifactId>wogu-maven-plugin</artifactId>
@@ -40,15 +40,15 @@
     <!-- WoGu engine, bundled with the plugin so validators are discoverable at runtime
          without requiring consumers to declare these as project dependencies. -->
     <dependency>
-      <groupId>io.wogu</groupId>
+      <groupId>io.github.vikas0686</groupId>
       <artifactId>wogu-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.wogu</groupId>
+      <groupId>io.github.vikas0686</groupId>
       <artifactId>wogu-temporal</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.wogu</groupId>
+      <groupId>io.github.vikas0686</groupId>
       <artifactId>wogu-report</artifactId>
     </dependency>
     <dependency>

@@ -4,9 +4,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>io.wogu</groupId>
+  <groupId>io.github.vikas0686</groupId>
   <artifactId>wogu-parent</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.1.0</version>
   <packaging>pom</packaging>
 
   <name>WoGu Parent</name>
@@ -14,7 +14,7 @@
     WoGu (Workflow Guard) is a static analysis and build validation framework for
     workflow-based applications. This is the reactor parent for all WoGu modules.
   </description>
-  <url>https://github.com/wogu-project/wogu</url>
+  <url>https://github.com/vikas0686/wogu</url>
   <inceptionYear>2026</inceptionYear>
 
   <licenses>
@@ -27,26 +27,28 @@
 
   <developers>
     <developer>
-      <name>WoGu Contributors</name>
-      <url>https://github.com/wogu-project/wogu/graphs/contributors</url>
+      <id>vikas0686</id>
+      <name>Vikas Pandey</name>
+      <email>info@vikaspandey.dev</email>
+      <url>https://github.com/vikas0686</url>
     </developer>
   </developers>
 
   <scm>
-    <connection>scm:git:https://github.com/wogu-project/wogu.git</connection>
-    <developerConnection>scm:git:https://github.com/wogu-project/wogu.git</developerConnection>
-    <url>https://github.com/wogu-project/wogu</url>
+    <connection>scm:git:https://github.com/vikas0686/wogu.git</connection>
+    <developerConnection>scm:git:https://github.com/vikas0686/wogu.git</developerConnection>
+    <url>https://github.com/vikas0686/wogu</url>
     <tag>HEAD</tag>
   </scm>
 
   <issueManagement>
     <system>GitHub Issues</system>
-    <url>https://github.com/wogu-project/wogu/issues</url>
+    <url>https://github.com/vikas0686/wogu/issues</url>
   </issueManagement>
 
   <ciManagement>
     <system>GitHub Actions</system>
-    <url>https://github.com/wogu-project/wogu/actions</url>
+    <url>https://github.com/vikas0686/wogu/actions</url>
   </ciManagement>
 
   <modules>
@@ -94,22 +96,22 @@
     <dependencies>
       <!-- Inter-module dependencies -->
       <dependency>
-        <groupId>io.wogu</groupId>
+        <groupId>io.github.vikas0686</groupId>
         <artifactId>wogu-api</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.wogu</groupId>
+        <groupId>io.github.vikas0686</groupId>
         <artifactId>wogu-core</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.wogu</groupId>
+        <groupId>io.github.vikas0686</groupId>
         <artifactId>wogu-temporal</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.wogu</groupId>
+        <groupId>io.github.vikas0686</groupId>
         <artifactId>wogu-report</artifactId>
         <version>${project.version}</version>
       </dependency>

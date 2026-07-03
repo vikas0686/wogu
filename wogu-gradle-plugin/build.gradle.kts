@@ -19,13 +19,13 @@ repositories {
     mavenCentral()
 }
 
-val woguVersion = "0.1.0-SNAPSHOT"
+val woguVersion = "0.1.0"
 
 dependencies {
-    implementation("io.wogu:wogu-api:$woguVersion")
-    implementation("io.wogu:wogu-core:$woguVersion")
-    implementation("io.wogu:wogu-temporal:$woguVersion")
-    implementation("io.wogu:wogu-report:$woguVersion")
+    implementation("io.github.vikas0686:wogu-api:$woguVersion")
+    implementation("io.github.vikas0686:wogu-core:$woguVersion")
+    implementation("io.github.vikas0686:wogu-temporal:$woguVersion")
+    implementation("io.github.vikas0686:wogu-report:$woguVersion")
 
     testImplementation(platform("org.junit:junit-bom:5.12.2"))
     testImplementation("org.junit.jupiter:junit-jupiter")

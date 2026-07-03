@@ -242,8 +242,18 @@ mocks. If you touch `wogu-maven-plugin`, prefer testing through `WoguRunner` dir
 - Update `CHANGELOG.md` (Keep a Changelog format) for user-visible changes, and
   `README.md`'s module list / architecture diagram if you add or rename a module.
 
-# Known placeholders to flag, not silently "fix"
+# Real project identity — no longer placeholders
 
-The `groupId` (`io.wogu`) and repo URLs (`github.com/wogu-project/wogu`) throughout the
-POMs and docs are placeholders from the initial scaffold. If a task involves publishing
-or CI changes that depend on the real org/repo name, ask rather than guessing one.
+The Maven `groupId` (`io.github.vikas0686`) and repo URL (`github.com/vikas0686/wogu`)
+throughout the POMs and docs are the real, finalized coordinates, not scaffold
+placeholders — every module's `pom.xml`, the root `pom.xml`'s `<url>`/`<scm>`/
+`<issueManagement>`, and `docs/rules/*`'s GitHub links all agree on them. If you add a
+new Maven module or a new rule doc, use these same coordinates; don't reintroduce the
+old `io.wogu` / `github.com/wogu-project/wogu` placeholders from the initial scaffold.
+
+Note the Gradle plugin (`wogu-gradle-plugin`) intentionally keeps its own identity
+separate: its Gradle plugin id (`io.wogu.wogu-gradle-plugin`) and its own
+`group`/`version` in `build.gradle.kts` are a different namespace from the Maven
+artifacts it depends on — only its `dependencies { implementation(...) }` coordinates
+and `woguVersion` need to track the Maven `groupId`/version above, since those resolve
+real jars from `mavenLocal()`.

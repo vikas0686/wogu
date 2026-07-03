@@ -10,10 +10,21 @@ import org.junit.jupiter.api.Test;
 
 class ValidationSummaryTest {
 
+  private static Rule rule(String id) {
+    return Rule.builder()
+        .id(id)
+        .title("Test rule")
+        .category(RuleCategory.DETERMINISM)
+        .severity(Severity.ERROR)
+        .engine("Temporal Java SDK")
+        .sinceVersion("0.1.0")
+        .documentationReference("docs/rules/" + id + ".md")
+        .build();
+  }
+
   private static Violation errorViolation() {
     return Violation.builder()
-        .validatorId("v1")
-        .severity(Severity.ERROR)
+        .rule(rule("WG001"))
         .file(Path.of("Foo.java"))
         .className("Foo")
         .line(1)
@@ -22,23 +33,31 @@ class ValidationSummaryTest {
         .build();
   }
 
+  private static ValidationSummary.Builder summaryBuilder() {
+    return ValidationSummary.builder()
+        .projectName("sample-project")
+        .timestamp(Instant.now())
+        .woguVersion("0.1.0")
+        .javaVersion("17")
+        .buildTool("Maven");
+  }
+
   @Test
-  void hasNoBuildFailuresWhenAllValidatorsPass() {
-    ValidationResult passing = ValidationResult.of("v1", List.of(), Duration.ofMillis(2));
+  void hasNoBuildFailuresWhenAllRulesPass() {
+    RuleResult passing = RuleResult.of(rule("WG001"), List.of(), Duration.ofMillis(2));
     ValidationSummary summary =
-        ValidationSummary.of("sample-project", Instant.now(), List.of(passing), Duration.ofMillis(2));
+        summaryBuilder().results(List.of(passing)).totalExecutionTime(Duration.ofMillis(2)).build();
 
     assertThat(summary.hasBuildFailures()).isFalse();
     assertThat(summary.allViolations()).isEmpty();
   }
 
   @Test
-  void hasBuildFailuresWhenAnyValidatorFails() {
-    ValidationResult failing = ValidationResult.of("v1", List.of(errorViolation()), Duration.ofMillis(3));
-    ValidationResult passing = ValidationResult.of("v2", List.of(), Duration.ofMillis(1));
+  void hasBuildFailuresWhenAnyRuleFails() {
+    RuleResult failing = RuleResult.of(rule("WG001"), List.of(errorViolation()), Duration.ofMillis(3));
+    RuleResult passing = RuleResult.of(rule("WG002"), List.of(), Duration.ofMillis(1));
     ValidationSummary summary =
-        ValidationSummary.of(
-            "sample-project", Instant.now(), List.of(failing, passing), Duration.ofMillis(4));
+        summaryBuilder().results(List.of(failing, passing)).totalExecutionTime(Duration.ofMillis(4)).build();
 
     assertThat(summary.hasBuildFailures()).isTrue();
     assertThat(summary.allViolations()).hasSize(1);
@@ -46,9 +65,22 @@ class ValidationSummaryTest {
 
   @Test
   void resultsListIsImmutable() {
-    ValidationSummary summary =
-        ValidationSummary.of("p", Instant.now(), List.of(), Duration.ZERO);
+    ValidationSummary summary = summaryBuilder().results(List.of()).totalExecutionTime(Duration.ZERO).build();
 
     assertThat(summary.results()).isUnmodifiable();
+  }
+
+  @Test
+  void exposesBuildMetadata() {
+    ValidationSummary summary = summaryBuilder()
+        .results(List.of())
+        .totalExecutionTime(Duration.ZERO)
+        .scannedElementCount(4)
+        .build();
+
+    assertThat(summary.woguVersion()).isEqualTo("0.1.0");
+    assertThat(summary.javaVersion()).isEqualTo("17");
+    assertThat(summary.buildTool()).isEqualTo("Maven");
+    assertThat(summary.scannedElementCount()).isEqualTo(4);
   }
 }

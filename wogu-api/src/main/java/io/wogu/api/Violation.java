@@ -1,46 +1,48 @@
 package io.wogu.api;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Objects;
 
 /**
- * A single finding reported by a {@link WorkflowValidator}: one rule broken at one
- * location in one source file.
+ * A single finding reported for one {@link Rule}: that rule broken at one location in one
+ * source file, optionally with the full call path from a workflow entry point down to the
+ * offending code.
  *
  * <p>Instances are immutable and safe to share across threads. Use {@link #builder()}
  * to construct one.
  */
 public final class Violation {
 
-  private final String validatorId;
-  private final Severity severity;
+  private final Rule rule;
   private final Path file;
   private final String className;
   private final int line;
   private final String message;
   private final String suggestedFix;
+  private final List<CallPathFrame> callPath;
 
   private Violation(Builder builder) {
-    this.validatorId = Objects.requireNonNull(builder.validatorId, "validatorId");
-    this.severity = Objects.requireNonNull(builder.severity, "severity");
+    this.rule = Objects.requireNonNull(builder.rule, "rule");
     this.file = Objects.requireNonNull(builder.file, "file");
     this.className = Objects.requireNonNull(builder.className, "className");
     this.message = Objects.requireNonNull(builder.message, "message");
     this.suggestedFix = Objects.requireNonNull(builder.suggestedFix, "suggestedFix");
+    this.callPath = List.copyOf(Objects.requireNonNull(builder.callPath, "callPath"));
     if (builder.line < 1) {
       throw new IllegalArgumentException("line must be >= 1, was " + builder.line);
     }
     this.line = builder.line;
   }
 
-  /** Id of the {@link WorkflowValidator} that reported this violation. */
-  public String validatorId() {
-    return validatorId;
+  /** The rule this is a violation of. */
+  public Rule rule() {
+    return rule;
   }
 
-  /** Severity of this violation. */
+  /** Severity of this violation; always the owning {@link #rule()}'s severity. */
   public Severity severity() {
-    return severity;
+    return rule.severity();
   }
 
   /** Source file the violation was found in. */
@@ -58,7 +60,7 @@ public final class Violation {
     return line;
   }
 
-  /** Human-readable description of what is wrong. */
+  /** Human-readable, teaching-style explanation of what is wrong and why it matters. */
   public String message() {
     return message;
   }
@@ -66,6 +68,15 @@ public final class Violation {
   /** Human-readable suggestion for how to fix the violation. */
   public String suggestedFix() {
     return suggestedFix;
+  }
+
+  /**
+   * The execution path from a workflow entry point down to this violation, one frame per
+   * method boundary crossed, ending with the flagged code itself. Empty if the rule that
+   * produced this violation does not perform call-path analysis.
+   */
+  public List<CallPathFrame> callPath() {
+    return callPath;
   }
 
   public static Builder builder() {
@@ -81,44 +92,39 @@ public final class Violation {
       return false;
     }
     return line == other.line
-        && validatorId.equals(other.validatorId)
-        && severity == other.severity
+        && rule.equals(other.rule)
         && file.equals(other.file)
         && className.equals(other.className)
         && message.equals(other.message)
-        && suggestedFix.equals(other.suggestedFix);
+        && suggestedFix.equals(other.suggestedFix)
+        && callPath.equals(other.callPath);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(validatorId, severity, file, className, line, message, suggestedFix);
+    return Objects.hash(rule, file, className, line, message, suggestedFix, callPath);
   }
 
   @Override
   public String toString() {
-    return "%s:%d [%s] %s: %s".formatted(file, line, severity, className, message);
+    return "%s:%d [%s] %s: %s".formatted(file, line, rule.severity(), className, message);
   }
 
   /** Builder for {@link Violation}. */
   public static final class Builder {
 
-    private String validatorId;
-    private Severity severity;
+    private Rule rule;
     private Path file;
     private String className;
     private int line;
     private String message;
     private String suggestedFix;
+    private List<CallPathFrame> callPath = List.of();
 
     private Builder() {}
 
-    public Builder validatorId(String validatorId) {
-      this.validatorId = validatorId;
-      return this;
-    }
-
-    public Builder severity(Severity severity) {
-      this.severity = severity;
+    public Builder rule(Rule rule) {
+      this.rule = rule;
       return this;
     }
 
@@ -144,6 +150,11 @@ public final class Violation {
 
     public Builder suggestedFix(String suggestedFix) {
       this.suggestedFix = suggestedFix;
+      return this;
+    }
+
+    public Builder callPath(List<CallPathFrame> callPath) {
+      this.callPath = List.copyOf(callPath);
       return this;
     }
 

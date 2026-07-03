@@ -18,12 +18,14 @@ public final class DefaultValidationContext implements ValidationContext {
   private final Path projectDirectory;
   private final List<Path> sourceRoots;
   private final List<Path> classpathElements;
+  private final String buildTool;
 
   private DefaultValidationContext(Builder builder) {
     this.projectName = Objects.requireNonNull(builder.projectName, "projectName");
     this.projectDirectory = Objects.requireNonNull(builder.projectDirectory, "projectDirectory");
     this.sourceRoots = List.copyOf(builder.sourceRoots);
     this.classpathElements = List.copyOf(builder.classpathElements);
+    this.buildTool = Objects.requireNonNull(builder.buildTool, "buildTool");
   }
 
   @Override
@@ -46,6 +48,11 @@ public final class DefaultValidationContext implements ValidationContext {
     return classpathElements;
   }
 
+  @Override
+  public String buildTool() {
+    return buildTool;
+  }
+
   public static Builder builder() {
     return new Builder();
   }
@@ -57,6 +64,7 @@ public final class DefaultValidationContext implements ValidationContext {
     private Path projectDirectory;
     private List<Path> sourceRoots = List.of();
     private List<Path> classpathElements = List.of();
+    private String buildTool;
 
     private Builder() {}
 
@@ -77,6 +85,11 @@ public final class DefaultValidationContext implements ValidationContext {
 
     public Builder classpathElements(List<Path> classpathElements) {
       this.classpathElements = List.copyOf(classpathElements);
+      return this;
+    }
+
+    public Builder buildTool(String buildTool) {
+      this.buildTool = buildTool;
       return this;
     }
 

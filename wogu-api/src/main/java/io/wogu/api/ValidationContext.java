@@ -32,4 +32,7 @@ public interface ValidationContext {
    * external types.
    */
   List<Path> classpathElements();
+
+  /** Name of the build tool driving this run, e.g. {@code "Maven"} or {@code "Gradle"}. */
+  String buildTool();
 }

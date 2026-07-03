@@ -3,10 +3,11 @@ package io.wogu.core;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.wogu.api.Severity;
+import io.wogu.api.Rule;
+import io.wogu.api.RuleResult;
 import io.wogu.api.ValidationContext;
-import io.wogu.api.ValidationResult;
 import io.wogu.api.ValidationSummary;
+import io.wogu.api.ValidatorRunOutcome;
 import io.wogu.api.Violation;
 import io.wogu.api.WorkflowValidator;
 import java.nio.file.Path;
@@ -20,6 +21,7 @@ class ValidationEngineTest {
       DefaultValidationContext.builder()
           .projectName("sample-project")
           .projectDirectory(Path.of("."))
+          .buildTool("Maven")
           .build();
 
   @Test
@@ -35,21 +37,24 @@ class ValidationEngineTest {
   void runsExplicitlyRegisteredValidatorsInOrder() {
     ValidationEngine engine =
         ValidationEngine.of(
-            List.of(FixedResultValidator.passing("first"), FixedResultValidator.passing("second")));
+            List.of(
+                FixedResultValidator.passing("first", "WG001"),
+                FixedResultValidator.passing("second", "WG002")));
 
     ValidationSummary summary = engine.run(CONTEXT);
 
-    assertThat(summary.results()).extracting(ValidationResult::validatorId).containsExactly("first", "second");
+    assertThat(summary.results()).extracting(r -> r.rule().id()).containsExactly("WG001", "WG002");
     assertThat(summary.hasBuildFailures()).isFalse();
     assertThat(summary.projectName()).isEqualTo("sample-project");
+    assertThat(summary.buildTool()).isEqualTo("Maven");
   }
 
   @Test
   void aggregatesBuildFailureWhenAnyValidatorReportsAnErrorViolation() {
+    Rule rule = FixedResultValidator.testRule("WG003");
     Violation violation =
         Violation.builder()
-            .validatorId("bad")
-            .severity(Severity.ERROR)
+            .rule(rule)
             .file(Path.of("Foo.java"))
             .className("Foo")
             .line(1)
@@ -57,9 +62,9 @@ class ValidationEngineTest {
             .suggestedFix("fix it")
             .build();
     WorkflowValidator failing =
-        new FixedResultValidator("bad", ValidationResult.of("bad", List.of(violation), Duration.ofMillis(1)));
+        new FixedResultValidator("bad", RuleResult.of(rule, List.of(violation), Duration.ofMillis(1)));
 
-    ValidationEngine engine = ValidationEngine.of(List.of(FixedResultValidator.passing("good"), failing));
+    ValidationEngine engine = ValidationEngine.of(List.of(FixedResultValidator.passing("good", "WG001"), failing));
 
     ValidationSummary summary = engine.run(CONTEXT);
 
@@ -82,7 +87,12 @@ class ValidationEngineTest {
           }
 
           @Override
-          public ValidationResult validate(ValidationContext context) {
+          public List<Rule> rules() {
+            return List.of(FixedResultValidator.testRule("WG001"));
+          }
+
+          @Override
+          public ValidatorRunOutcome validate(ValidationContext context) {
             throw new IllegalStateException("cannot read source root");
           }
         };
@@ -103,5 +113,15 @@ class ValidationEngineTest {
 
     assertThat(summary.results()).isEmpty();
     assertThat(summary.hasBuildFailures()).isFalse();
+  }
+
+  @Test
+  void exposesRuntimeBuildMetadataOnTheSummary() {
+    ValidationEngine engine = ValidationEngine.of(List.of());
+
+    ValidationSummary summary = engine.run(CONTEXT);
+
+    assertThat(summary.javaVersion()).isEqualTo(System.getProperty("java.version"));
+    assertThat(summary.woguVersion()).isEqualTo("development");
   }
 }

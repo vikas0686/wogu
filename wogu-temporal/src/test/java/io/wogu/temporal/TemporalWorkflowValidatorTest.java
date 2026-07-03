@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.wogu.api.CallPathFrame;
 import io.wogu.api.Rule;
+import io.wogu.api.RuleCategory;
 import io.wogu.api.RuleResult;
 import io.wogu.api.ValidationContext;
 import io.wogu.api.ValidatorRunOutcome;
@@ -34,6 +35,14 @@ class TemporalWorkflowValidatorTest {
   @Test
   void declaresWG001AsOneOfItsRules() {
     assertThat(validator.rules()).extracting(Rule::id).containsExactly("WG001");
+  }
+
+  @Test
+  void wg001IdFallsWithinItsDeterminismCategorysReservedNumericRange() {
+    Rule wg001 = validator.rules().get(0);
+
+    assertThat(wg001.category()).isEqualTo(RuleCategory.DETERMINISM);
+    assertThat(wg001.category().containsRuleId(wg001.id())).isTrue();
   }
 
   @Test

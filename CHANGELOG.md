@@ -27,9 +27,9 @@ Initial proof-of-concept release.
 - `wogu-maven-plugin`: the `wogu:validate` goal, bound to the `verify` phase by default.
 - `wogu-gradle-plugin`: the `woguValidate` task, wired to the `build` lifecycle task once
   the `java` plugin is applied.
-- `sample-temporal-project`: a `clean` module (passes) and a `violation` module (fails by
-  design), each buildable with both Maven and Gradle, demonstrating the framework
-  end-to-end.
+- `sample-temporal-project`: a Temporal workflow implementation calling
+  `UUID.randomUUID()`, intentionally failing `mvn verify` and demonstrating the
+  generated HTML report end-to-end.
 
 [Unreleased]: https://github.com/wogu-project/wogu/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/wogu-project/wogu/releases/tag/v0.1.0

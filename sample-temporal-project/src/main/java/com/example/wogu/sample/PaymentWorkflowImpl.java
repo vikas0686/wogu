@@ -1,4 +1,4 @@
-package com.example.wogu.sample.violation;
+package com.example.wogu.sample;
 
 import java.util.UUID;
 

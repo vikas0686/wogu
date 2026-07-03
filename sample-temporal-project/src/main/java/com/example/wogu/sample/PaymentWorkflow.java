@@ -1,11 +1,11 @@
-package com.example.wogu.sample.clean;
+package com.example.wogu.sample;
 
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
 
 @WorkflowInterface
-public interface OrderWorkflow {
+public interface PaymentWorkflow {
 
   @WorkflowMethod
-  String placeOrder(String customerId);
+  String processPayment(String accountId);
 }

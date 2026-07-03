@@ -8,9 +8,8 @@ built, how to add a new validator, and what we expect from a pull request.
 * JDK 17 or newer
 * Maven 3.9+ (a wrapper is not currently bundled at the repo root; a system install is
   assumed)
-* Gradle is only needed if you want to install it yourself; `wogu-gradle-plugin` and the
-  Gradle side of the sample project each bundle their own wrapper (`./gradlew`), so no
-  global Gradle install is required to build them.
+* Gradle is only needed if you want to install it yourself; `wogu-gradle-plugin` bundles
+  its own wrapper (`./gradlew`), so no global Gradle install is required to build it.
 
 ## Repository layout
 
@@ -25,16 +24,14 @@ wogu-parent          (root aggregator pom.xml)
   wogu-maven-plugin  The wogu:validate Maven goal.
   wogu-gradle-plugin Independent Gradle build; the woguValidate Gradle task.
   sample-temporal-project
-    clean/           Uses Workflow.randomUUID(); mvn verify / gradle build both pass.
-    violation/       Uses UUID.randomUUID(); both intentionally fail, with a report.
+                     A Temporal workflow that calls UUID.randomUUID(); mvn verify
+                     intentionally fails here and writes target/wogu/index.html.
 ```
 
-`wogu-gradle-plugin` and `sample-temporal-project/*` are **not** Maven modules — they are
-separate Gradle builds that consume the Maven-built jars from `~/.m2` (via `mavenLocal()`
-in `wogu-gradle-plugin/build.gradle.kts`, and via a composite `includeBuild(...)` from the
-sample projects into `wogu-gradle-plugin`). `sample-temporal-project` itself *is* a Maven
-aggregator (for its `clean` and `violation` children) but is excluded from the repo's
-default Maven reactor via the `with-samples` profile, since `violation` fails on purpose.
+`wogu-gradle-plugin` is **not** a Maven module — it's a separate Gradle build that
+consumes the Maven-built jars from `~/.m2` via `mavenLocal()`. `sample-temporal-project`
+*is* a Maven module, but is excluded from the repo's default Maven reactor via the
+`with-samples` profile, since it fails by design.
 
 ## Building
 
@@ -44,30 +41,25 @@ Build and test the core Maven reactor (`wogu-api` through `wogu-maven-plugin`):
 mvn clean verify
 ```
 
-This does **not** build `sample-temporal-project`, since its `violation` module fails by
-design. To exercise the samples:
+This does **not** build `sample-temporal-project`, since it fails by design. To run it
+explicitly:
 
 ```bash
-# Passes:
-mvn -f sample-temporal-project/clean verify
+# Fails on purpose, writes sample-temporal-project/target/wogu/index.html:
+mvn -f sample-temporal-project verify
 
-# Fails on purpose, writes sample-temporal-project/violation/target/wogu/index.html:
-mvn -f sample-temporal-project/violation verify
-
-# Or build both together via the opt-in profile (the reactor will report FAILURE,
-# because 'violation' is supposed to fail):
+# Or via the opt-in profile from the repo root (the reactor will report FAILURE,
+# because the sample is supposed to fail):
 mvn -Pwith-samples verify
 ```
 
-Because `wogu-gradle-plugin` and the samples' Gradle builds resolve WoGu's jars from your
-local Maven repository, run `mvn install` (not just `verify`) at the repo root first if
-you've changed any Maven module and want the Gradle side to see the change:
+Because `wogu-gradle-plugin` resolves WoGu's jars from your local Maven repository, run
+`mvn install` (not just `verify`) at the repo root first if you've changed any Maven
+module and want the Gradle plugin to see the change:
 
 ```bash
 mvn clean install
 cd wogu-gradle-plugin && ./gradlew build
-cd ../sample-temporal-project/clean && ./gradlew build       # passes
-cd ../violation && ./gradlew build                            # fails on purpose
 ```
 
 ## Adding a new Temporal validator

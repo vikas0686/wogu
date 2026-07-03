@@ -11,25 +11,41 @@
   </parent>
 
   <artifactId>sample-temporal-project</artifactId>
-  <packaging>pom</packaging>
+  <packaging>jar</packaging>
 
   <name>WoGu Sample: Temporal Project</name>
   <description>
-    Demonstrates wogu-maven-plugin against real Temporal Java SDK code. The 'clean'
-    module uses Workflow.randomUUID() and passes 'mvn verify'; the 'violation' module
-    uses UUID.randomUUID() inside a workflow implementation and intentionally fails
-    'mvn verify', with an HTML report written to target/wogu/index.html.
+    Demonstrates wogu-maven-plugin against real Temporal Java SDK code. PaymentWorkflowImpl
+    calls UUID.randomUUID(), which breaks workflow replay determinism, so 'mvn verify'
+    intentionally fails here and writes target/wogu/index.html showing the violation.
 
-    This aggregator (and its children) is intentionally excluded from the repo's default
-    reactor build (see the root pom's 'with-samples' profile), since 'violation' fails by
-    design. Run it explicitly:
-      mvn -f sample-temporal-project/clean verify
-      mvn -f sample-temporal-project/violation verify
+    This module is intentionally excluded from the repo's default Maven reactor (see the
+    root pom's 'with-samples' profile), since it fails by design. Run it explicitly:
+      mvn -f sample-temporal-project verify
   </description>
 
-  <modules>
-    <module>clean</module>
-    <module>violation</module>
-  </modules>
+  <dependencies>
+    <dependency>
+      <groupId>io.temporal</groupId>
+      <artifactId>temporal-sdk</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.wogu</groupId>
+        <artifactId>wogu-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>validate</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>

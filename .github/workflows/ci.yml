@@ -28,19 +28,16 @@ jobs:
 
       - name: Install WoGu jars to the local Maven repository
         run: mvn -B install -DskipTests
-        # Needed so wogu-gradle-plugin (and the samples' Gradle builds) can resolve
-        # io.wogu:* from mavenLocal(); see CONTRIBUTING.md.
+        # Needed so wogu-gradle-plugin can resolve io.wogu:* from mavenLocal();
+        # see CONTRIBUTING.md.
 
-      - name: Build the Maven "clean" sample (expected to pass)
-        run: mvn -B -f sample-temporal-project/clean verify
-
-      - name: Verify the Maven "violation" sample fails as designed
+      - name: Verify the sample project fails as designed
         run: |
-          if mvn -B -f sample-temporal-project/violation verify; then
-            echo "::error::sample-temporal-project/violation was expected to fail WoGu validation, but the build passed."
+          if mvn -B -f sample-temporal-project verify; then
+            echo "::error::sample-temporal-project was expected to fail WoGu validation, but the build passed."
             exit 1
           fi
-          echo "sample-temporal-project/violation failed validation as expected."
+          echo "sample-temporal-project failed validation as expected."
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -49,27 +46,10 @@ jobs:
         working-directory: wogu-gradle-plugin
         run: ./gradlew build --no-daemon
 
-      - name: Build the Gradle "clean" sample (expected to pass)
-        working-directory: sample-temporal-project/clean
-        run: ./gradlew build --no-daemon
-
-      - name: Verify the Gradle "violation" sample fails as designed
-        working-directory: sample-temporal-project/violation
-        run: |
-          if ./gradlew build --no-daemon; then
-            echo "::error::The Gradle violation sample was expected to fail WoGu validation, but the build passed."
-            exit 1
-          fi
-          echo "Gradle violation sample failed validation as expected."
-
-      - name: Upload WoGu HTML reports
+      - name: Upload WoGu HTML report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wogu-reports
-          path: |
-            sample-temporal-project/clean/target/wogu/index.html
-            sample-temporal-project/violation/target/wogu/index.html
-            sample-temporal-project/clean/build/reports/wogu/index.html
-            sample-temporal-project/violation/build/reports/wogu/index.html
+          name: wogu-report
+          path: sample-temporal-project/target/wogu/index.html
           if-no-files-found: warn

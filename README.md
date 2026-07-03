@@ -63,7 +63,7 @@ wires it into `build`.
 
 > These artifacts aren't published to Maven Central yet (see
 > [sample-temporal-project](sample-temporal-project) and [CONTRIBUTING.md](CONTRIBUTING.md)
-> for how the samples in this repo consume them locally in the meantime).
+> for how the sample in this repo consumes them locally in the meantime).
 
 ## What it looks like
 
@@ -90,20 +90,14 @@ Build failed.
 And the HTML report it writes (`target/wogu/index.html` for Maven,
 `build/reports/wogu/index.html` for Gradle):
 
-**A build with a violation:**
-
 ![WoGu report showing a failed build with one violation](docs/images/report-failed.png)
 
-**A clean build:**
-
-![WoGu report showing a passed build with no violations](docs/images/report-passed.png)
-
-You can reproduce both directly from this repo — see
-[sample-temporal-project](sample-temporal-project):
+You can reproduce this directly from this repo — see
+[sample-temporal-project](sample-temporal-project), which calls `UUID.randomUUID()`
+inside a workflow implementation on purpose:
 
 ```bash
-mvn -f sample-temporal-project/clean verify       # passes
-mvn -f sample-temporal-project/violation verify   # fails, writes the report above
+mvn -f sample-temporal-project verify   # fails by design, writes the report above
 ```
 
 ## Architecture
@@ -125,9 +119,8 @@ wogu-parent                  root aggregator (Maven reactor)
                                wogu-api, so it renders any engine's output.
   wogu-maven-plugin           The wogu:validate Maven goal (bound to verify by default).
   wogu-gradle-plugin           The woguValidate Gradle task (an independent Gradle build).
-  sample-temporal-project      Real Temporal SDK code demonstrating the framework,
-    clean/                     buildable with both Maven and Gradle.
-    violation/
+  sample-temporal-project      Real Temporal SDK code with an intentional violation,
+                               demonstrating a failing 'mvn verify' and its HTML report.
 ```
 
 **Dependency direction:** `wogu-temporal` and the future `wogu-conductor` /

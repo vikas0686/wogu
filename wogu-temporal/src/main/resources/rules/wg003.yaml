@@ -5,7 +5,7 @@ category: Determinism
 severity: ERROR
 engine: Temporal Java SDK
 since: 0.2.0
-documentation: docs/rules/WG003.md
+documentation: https://github.com/vikas0686/wogu/tree/main/docs/rules/WG003.md
 
 description: >-
   This API returns the current wall-clock time. Temporal workflows replay workflow

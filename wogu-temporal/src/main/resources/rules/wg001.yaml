@@ -5,7 +5,7 @@ category: Determinism
 severity: ERROR
 engine: Temporal Java SDK
 since: 0.1.0
-documentation: docs/rules/WG001.md
+documentation: https://github.com/vikas0686/wogu/tree/main/docs/rules/WG001.md
 
 description: >-
   UUID.randomUUID() generates a different value every execution. Temporal workflows

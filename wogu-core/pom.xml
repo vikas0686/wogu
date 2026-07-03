@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.wogu</groupId>
+    <artifactId>wogu-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>wogu-core</artifactId>
+  <packaging>jar</packaging>
+
+  <name>WoGu Core</name>
+  <description>
+    The WoGu validation engine: discovers WorkflowValidator implementations via
+    java.util.ServiceLoader, executes them against a project, and aggregates their
+    results into a ValidationSummary. Adding a new validator never requires a change to
+    this module.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.wogu</groupId>
+      <artifactId>wogu-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+</project>

@@ -20,11 +20,11 @@ wogu-parent          (root aggregator pom.xml)
                      Violation, CallPathFrame, Severity. No engine dependencies.
   wogu-core          ValidationEngine (ServiceLoader-based discovery and execution) and
                      ConsoleReportRenderer, shared by both build-tool plugins.
-  wogu-temporal       Temporal SDK rules (WG001-WG003 today, all declarative YAML under
+  wogu-temporal       Temporal SDK rules (WG001-WG010 today, all declarative YAML under
                      src/main/resources/rules), the RuleRegistry/RuleDefinitionLoader
                      pipeline and generic ForbiddenMethodRule that execute them, the
                      CallGraphAnalyzer engine they're built on, and the
-                     WorkflowImplementationScanner they share.
+                     WorkflowImplementationScanner/ActivityAwareness they share.
   wogu-report        HtmlReportGenerator: renders a ValidationSummary as index.html.
   wogu-maven-plugin  The wogu:validate Maven goal.
   wogu-gradle-plugin Independent Gradle build; the woguValidate Gradle task.
@@ -107,15 +107,21 @@ architecture is built around, and it should never require touching `wogu-core` o
 
 ### Declarative rules (the common case)
 
-If your rule is "flag every reachable call to this specific static method" — which is
-what WG001, WG002, and WG003 all are — it's a YAML file, nothing more:
+If your rule is "flag every reachable call to this specific method, or every reachable
+construction of this specific class" — which is what WG001 through WG010 all are — it's
+a YAML file, nothing more:
 
 1. Add `wogu-temporal/src/main/resources/rules/wg0nn.yaml` with `type: forbidden-method`,
    the metadata fields (`id`, `title`, `category`, `severity`, `engine`, `since`,
    `documentation`), `description` (the teaching-style explanation, becomes the
    violation's message), `replacement` (the suggested fix), and a `methods` list of fully
-   qualified `Class.method` references (e.g. `java.lang.Thread.sleep`). See any of
-   `wg001.yaml`/`wg002.yaml`/`wg003.yaml` for the exact shape.
+   qualified `Class.method` references (e.g. `java.lang.Thread.sleep`) and/or a
+   `constructors` list of fully qualified class names (e.g. `java.util.Random`) if the
+   rule should also (or instead) flag constructing that class. Method matching works
+   whether the class name is written at the call site (`Thread.sleep()`) or not (an
+   instance call like `random.nextInt()`, matched by resolving the call and checking its
+   declaring type) — see any of `wg001.yaml` through `wg010.yaml` for the exact shape,
+   and `wg005.yaml`/`wg007.yaml`/`wg010.yaml` specifically for `constructors` in use.
 2. Give it the next free id in the right category's range (see above) — `Rule`'s
    constructor rejects a mismatch, so getting this wrong fails loudly, not silently.
 3. Add `docs/rules/WG0NN.md` following the template in `WG001.md`: Problem, Why this
@@ -125,14 +131,22 @@ what WG001, WG002, and WG003 all are — it's a YAML file, nothing more:
    write real source to a `@TempDir` and validate through `TemporalWorkflowValidator` end
    to end — don't mock JavaParser types, and don't write a new AST scanner: reuse
    `WorkflowImplementationScanner` (workflow classes and entry points) and
-   `CallGraphAnalyzer` (reachability), which `ForbiddenMethodRule` already wires up for you.
+   `CallGraphAnalyzer` (reachability), which `ForbiddenMethodRule` already wires up for
+   you. Every rule's traversal already stops at an Activity implementation boundary (see
+   `ActivityAwareness`), so a "does not flag inside an Activity" test should pass without
+   any rule-specific work — it's exercising shared infrastructure, not something your
+   rule needs to implement.
 
 `RuleDefinitionLoader` scans the classpath for `rules/*.yaml` at startup — there is no
 filename to register anywhere, in Java or otherwise. New rule *types* beyond
-`forbidden-method` (e.g. a future `forbidden-constructor` or `required-annotation`) are
-added by registering one more factory in `RuleRegistry`'s type map; that's the only place
-a rule "type" is dispatched, and it's a data-driven map, not a switch statement or an
-if/else chain.
+`forbidden-method` (e.g. a future `required-annotation` or `forbidden-field-access` rule
+that isn't expressible as a method call or constructor) are added by registering one more
+factory in `RuleRegistry`'s type map; that's the only place a rule "type" is dispatched,
+and it's a data-driven map, not a switch statement or an if/else chain. Before reaching
+for a new type, check whether `forbidden-method`'s `methods`/`constructors` combination
+already covers it — it was deliberately kept expressive (overload-agnostic matching,
+both static and resolved-instance calls, both methods and constructors) specifically so
+most rules never need one.
 
 ### Custom (hand-written) rules — the exception
 

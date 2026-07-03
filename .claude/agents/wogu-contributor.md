@@ -57,15 +57,14 @@ graph). In `wogu-temporal`: `TemporalWorkflowValidator` is the registered
 `WorkflowValidator`; it holds a list of package-private `TemporalRule` instances and
 returns one `RuleResult` per rule from `validate()`.
 
-**WG001, WG002, and WG003 are declarative, not hand-written classes.** Each is a small
-YAML file under `src/main/resources/rules` (`wg001.yaml`, `wg002.yaml`, `wg003.yaml`),
-executed by one generic `ForbiddenMethodRule` — there is no `UuidRandomUuidRule` /
-`ThreadSleepRule` / `NonDeterministicTimeApiRule` class anymore; they were deleted when
-this became declarative. `TemporalWorkflowValidator`'s constructor builds its rule list
-via `RuleRegistry.loadDeclarativeRules(classLoader)` (which finds every `rules/*.yaml` on
-the classpath) concatenated with a `CUSTOM_RULES` list for hand-written `CustomRule`
-subclasses (empty today). Adding another rule of the same shape as WG001–003 means adding
-a YAML file, not touching this class at all — see "Adding a new rule" below.
+**WG001 through WG010 are declarative, not hand-written classes.** Each is a small YAML
+file under `src/main/resources/rules` (`wg001.yaml` ... `wg010.yaml`), executed by one
+generic `ForbiddenMethodRule` — there is no per-rule Java class. `TemporalWorkflowValidator`'s
+constructor builds its rule list via `RuleRegistry.loadDeclarativeRules(classLoader)`
+(which finds every `rules/*.yaml` on the classpath) concatenated with a `CUSTOM_RULES`
+list for hand-written `CustomRule` subclasses (empty today). Adding another rule of the
+same shape as WG001–010 means adding a YAML file, not touching this class at all — see
+"Adding a new rule" below.
 
 Every rule id is `WG###`; `RuleCategory` reserves a fixed numeric range per category
 (Determinism `WG001`–`WG099`, Activities `WG100`–`WG199`, etc. — see
@@ -101,20 +100,48 @@ details if you touch this code:
 matching an `@WorkflowMethod`-annotated interface method, falling back to every method in
 the class if none is annotated that way.
 
-For "flag this specific static method call" rules (WG001/WG002/WG003 are all this shape),
-you never need a new `CallTarget` implementation:
+For "flag this specific method call" rules (WG001–WG004, WG006, WG008, WG009 are all
+this shape), you never need a new `CallTarget` implementation:
 `io.wogu.temporal.callgraph.StaticMethodCallTarget` takes a qualified class name and
 method name and handles every way the call can be written (simple name + import,
-wildcard import, fully qualified inline, static import, and `java.lang` classes needing
-no import at all unless shadowed). `ForbiddenMethodRule` builds one per entry in a rule
-definition's `methods` list (several, for a rule like WG003's eight time APIs).
+wildcard import, fully qualified inline, static import, `java.lang` classes needing no
+import at all unless shadowed), **and**, as a resolution-based fallback when none of
+those syntactic forms match, an instance call where the class name isn't written at the
+call site at all (e.g. `randomInstance.nextInt()`) — it resolves the call and checks that
+its declaring type is the target class. `ForbiddenMethodRule` builds one per entry in a
+rule definition's `methods` list (several, for a rule like WG003's eight time APIs).
+
+For "flag constructing this specific class" (WG005's `new Random()`, WG007's `new
+SecureRandom()`, WG010's `new Thread()`), `io.wogu.temporal.callgraph.ConstructorCallTarget`
+is the equivalent for `ObjectCreationExpr` instead of `MethodCallExpr`, sharing its
+class-name-matching rules with `StaticMethodCallTarget` via the package-private
+`QualifiedClassNameMatcher` so the two never disagree about what counts as "this class."
+`ForbiddenMethodRule` builds one per entry in a rule definition's `constructors` list, in
+addition to any `methods` entries — a rule can declare both. Don't add a new `TemporalRule`
+type for "flag this constructor"; it's already covered by `forbidden-method`.
+
+`io.wogu.temporal.ActivityAwareness` is the traversal boundary every rule gets for free:
+`CallGraphAnalyzer.findCallPaths` takes an optional `Predicate<MethodDeclaration>`
+(`traversalBoundary`), and `TemporalWorkflowValidator` computes one such predicate via
+`ActivityAwareness.activityBoundary(units)` — once per `validate()` call, not once per
+rule — and passes it to every rule's `evaluate()`. It matches a method as Activity-owned
+either by its own `@ActivityMethod` annotation or by its declaring class implementing an
+`@ActivityInterface`-annotated interface (reusing `TemporalAnnotations`, the same
+import-aware annotation check `WorkflowImplementationScanner` uses). This is
+defense-in-depth on top of the traversal's existing "natural" dead end at an Activity's
+interface method (which has no body to look inside regardless); it specifically covers a
+reference typed as the Activity *implementation* class directly, where resolution would
+otherwise reach real, callable source. `CallGraphAnalyzer` itself stays engine-agnostic —
+it has no idea what an Activity is, only that some methods are marked opaque.
 
 `TemporalRuleSupport.findViolations(...)` is the other piece every call-graph-based rule
 reuses: the "for each workflow class, for each entry point, for each target, convert
-matches into `Violation`s (with relativized call-path frames)" loop. `ForbiddenMethodRule`
-already calls this for you — if you're implementing a new `TemporalRule` type from
-scratch, its `evaluate()` should be a one-line call into `TemporalRuleSupport`, not a
-hand-rolled copy of that loop.
+matches into `Violation`s (with relativized call-path frames)" loop, now also threading
+the activity boundary predicate through to `callGraph.findCallPaths(...)`.
+`ForbiddenMethodRule` already calls this for you — if you're implementing a new
+`TemporalRule` type from scratch, its `evaluate()` should be a one-line call into
+`TemporalRuleSupport`, not a hand-rolled copy of that loop, and it must accept and forward
+the `activityBoundary` parameter like every other rule does.
 
 # Adding a new rule
 
@@ -123,15 +150,18 @@ hand-rolled copy of that loop.
 1. Add `wogu-temporal/src/main/resources/rules/wg0nn.yaml`: `id`, `type:
    forbidden-method`, `title`, `category`, `severity`, `engine`, `since`, `documentation`,
    `description` (becomes `Violation.message()`), `replacement` (becomes
-   `Violation.suggestedFix()`), and `methods` (a list of `Class.method` references). Copy
-   `wg002.yaml` as a starting point.
+   `Violation.suggestedFix()`), and `methods` (a list of `Class.method` references)
+   and/or `constructors` (a list of fully qualified class names, for a rule that flags
+   `new SomeClass(...)`). Copy `wg002.yaml` for a methods-only starting point, or
+   `wg005.yaml`/`wg010.yaml` for one that also uses `constructors`.
 2. Give it the next free id in the right category's range — `Rule`'s constructor rejects
    a mismatch.
 3. Write a test writing real temp-directory source parsed through `SourceRootParser` and
    validated via `TemporalWorkflowValidator` end to end (see `ThreadSleepRuleTest` /
    `NonDeterministicTimeApiRuleTest` for the pattern — including a "must NOT report inside
    an Activity" case, invoking the activity through its interface type, not the impl class
-   directly). Don't mock JavaParser types.
+   directly; this exercises `ActivityAwareness`, shared infrastructure your rule gets for
+   free, not something to implement per rule). Don't mock JavaParser types.
 4. Write `docs/rules/WG0NN.md` following the `WG001.md` template (Problem, Why this
    matters, Bad/Good Example, Recommended Fix, References, False Positives, Since
    Version).
@@ -139,17 +169,20 @@ hand-rolled copy of that loop.
    should need to change — `RuleDefinitionLoader` finds the new file on the classpath
    automatically.
 
-**The exception (needs real analysis logic, not a method-call pattern):** extend
-`CustomRule` (supply a `Rule` via its constructor, implement `evaluate()`) and add an
-instance to `TemporalWorkflowValidator`'s `CUSTOM_RULES` list. Only do this when the rule
-genuinely can't be expressed as `forbidden-method` — most rules can.
+**The exception (needs real analysis logic, not a method-call/constructor pattern):**
+extend `CustomRule` (supply a `Rule` via its constructor, implement `evaluate()`) and add
+an instance to `TemporalWorkflowValidator`'s `CUSTOM_RULES` list. Only do this when the
+rule genuinely can't be expressed as `forbidden-method` — most rules can, since it already
+matches both static and resolved-instance method calls, and both methods and constructors.
 
-**Adding a new declarative rule *type*** (not just a new rule of an existing type, e.g. a
-future `forbidden-constructor`): implement a `TemporalRule` that reads whatever new
-`RuleDefinition` field it needs, and register it in `RuleRegistry.FACTORIES_BY_TYPE`
-(a `Map<String, Function<RuleDefinition, TemporalRule>>` — a data-driven registry, not a
-switch statement or an if/else chain). This is rare; don't add a new type speculatively
-without a concrete rule that needs it.
+**Adding a new declarative rule *type*** (not just a new rule of an existing type):
+implement a `TemporalRule` that reads whatever new `RuleDefinition` field it needs, and
+register it in `RuleRegistry.FACTORIES_BY_TYPE` (a `Map<String, Function<RuleDefinition,
+TemporalRule>>` — a data-driven registry, not a switch statement or an if/else chain).
+This is rare; don't add a new type speculatively without a concrete rule that needs it,
+and check first whether `forbidden-method`'s `methods`/`constructors` combination already
+covers it (it covers method calls — static or instance, any overload, syntactic or
+resolution-matched — and constructor calls, which is most "flag this API" rules).
 
 # Adding a new workflow engine module
 

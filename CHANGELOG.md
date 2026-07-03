@@ -8,6 +8,48 @@ project adheres to [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+### Added
+
+- **WG004 — Math.random() inside Workflow**, **WG005 — java.util.Random inside
+  Workflow**, **WG006 — ThreadLocalRandom inside Workflow**, **WG007 — SecureRandom
+  inside Workflow**, **WG008 — System.getenv() inside Workflow**, **WG009 —
+  System.getProperty() inside Workflow**, and **WG010 — ExecutorService inside
+  Workflow** (all Determinism). Each is a YAML definition executed by the existing
+  `ForbiddenMethodRule`, reusing the same call-graph engine and `TemporalRuleSupport`
+  plumbing as WG001–WG003 — no new Java class per rule, no new traversal logic, no report
+  changes. `docs/rules/WG004.md` through `WG010.md` document each one.
+- `io.wogu.temporal.callgraph.ConstructorCallTarget`: a `CallTarget` for "this is a `new
+  SomeClass(...)` call" (WG005's `new Random()`, WG007's `new SecureRandom()`, WG010's
+  `new Thread()`), sharing its class-name-matching rules with `StaticMethodCallTarget` via
+  a new package-private `QualifiedClassNameMatcher` helper so the two never disagree about
+  what counts as "this class." `RuleDefinition` gains an optional `constructors` field
+  (a list of fully qualified class names) alongside `methods`, and `ForbiddenMethodRule`
+  builds a `ConstructorCallTarget` per entry, combined with its `methods` targets.
+- `StaticMethodCallTarget` gains a resolution-based fallback for instance calls where the
+  declaring class isn't written at the call site at all (e.g. `randomInstance.nextInt()`,
+  needed for WG005/WG007): when none of the existing syntactic forms match, it resolves
+  the call via WoGu's symbol solver and checks that its declaring type is the target
+  class. Purely additive — every existing static-call match keeps matching syntactically
+  exactly as before, so WG001–WG003 are unaffected.
+- **Activity-aware traversal.** `CallGraphAnalyzer.findCallPaths` gains an overload taking
+  a `Predicate<MethodDeclaration> traversalBoundary`: a method the predicate matches is
+  treated as opaque — neither scanned for matches nor recursed into — while
+  `CallGraphAnalyzer` itself stays engine-agnostic (it has no idea what an Activity is,
+  only that some methods are marked out of bounds). New `io.wogu.temporal.ActivityAwareness`
+  supplies that predicate for Temporal: a method counts as Activity-owned if it (or its
+  declaring class) carries `@ActivityMethod`/`@ActivityInterface`, or its declaring class
+  implements an `@ActivityInterface`-annotated interface. `TemporalWorkflowValidator`
+  computes this once per `validate()` call and passes it to every rule. This is
+  defense-in-depth on top of the traversal's existing dead end at an Activity's interface
+  method (which has no body to look inside regardless): it specifically covers a
+  reference typed as the Activity *implementation* class directly, where resolution would
+  otherwise reach real, callable source and (before this change) report violations that
+  only occur inside Activity code, which isn't subject to workflow replay determinism.
+- `CallGraphAnalyzer` now also scans every `ObjectCreationExpr` reachable from an entry
+  point, checking each against `CallTarget.matchesConstructor`/`describeConstructor` (new
+  default methods on `CallTarget`, defaulting to "never matches" so every existing
+  method-call-only target needs no change).
+
 ### Changed
 
 - **Forbidden-method rules are now declarative YAML, not Java classes.** WG001, WG002,

@@ -144,11 +144,11 @@ class CustomerService {
 `io.wogu.temporal.callgraph.CallGraphAnalyzer` is this engine, and it's reusable: it takes
 a `CallTarget` (the pattern to look for — "is this call `UUID.randomUUID()`?") as a
 parameter, so WG002 (`Thread.sleep()`) and WG003 (eight non-deterministic time APIs)
-reuse the exact same traversal instead of new one-off scanners — each rule only supplies
-its own `CallTarget`(s) via the shared, generic
-`io.wogu.temporal.callgraph.StaticMethodCallTarget` ("this call is a specific class's
-specific static method"). A future rule for `Math.random()`, HTTP clients, JDBC, or file
-I/O follows the same pattern. When a call can't be resolved to project source (a
+reuse the exact same traversal instead of new one-off scanners — `ForbiddenMethodRule`
+builds one `io.wogu.temporal.callgraph.StaticMethodCallTarget` ("this call is a specific
+class's specific static method") per entry in a rule's YAML `methods` list. A future rule
+for `Math.random()`, HTTP clients, JDBC, or file I/O follows the same pattern. When a call
+can't be resolved to project source (a
 third-party library, reflection, dynamic dispatch — notably including a call made through
 an Activity's interface, which is how Activities are correctly never flagged), traversal
 simply stops there rather than guessing — WoGu prefers missing a violation behind an
@@ -167,9 +167,12 @@ wogu-parent                  root aggregator (Maven reactor)
                                aggregates their RuleResults. ConsoleReportRenderer: the
                                console output shared by both build-tool plugins. No
                                compile-time reference to any specific validator or rule.
-  wogu-temporal                Temporal Java SDK rules (WG001–WG003 today), the reusable
-                               CallGraphAnalyzer engine, and WorkflowImplementationScanner,
-                               shared infrastructure for future Temporal-specific rules.
+  wogu-temporal                Temporal Java SDK rules (WG001–WG003 today, all declared
+                               as YAML under src/main/resources/rules and executed by the
+                               generic ForbiddenMethodRule), the reusable CallGraphAnalyzer
+                               engine, RuleRegistry/RuleDefinitionLoader, and
+                               WorkflowImplementationScanner, shared infrastructure for
+                               future Temporal-specific rules.
   wogu-report                  HtmlReportGenerator: renders a ValidationSummary as a
                                single, self-contained index.html — Build Information, a
                                Rule Summary table, and a detail card per violation
@@ -215,20 +218,40 @@ ranges).
 
 ## Adding a rule
 
-This is the extension point the whole architecture exists to support. Adding a rule never
-requires modifying `wogu-core` or `wogu-report`:
+Most rules need no Java at all. WG001–WG003 are all "flag this static method call"
+rules, so each is a small YAML file under `wogu-temporal/src/main/resources/rules`,
+executed by one generic `ForbiddenMethodRule`:
 
-1. Implement the rule (in `wogu-temporal`: the package-private `TemporalRule` interface;
-   reuse `WorkflowImplementationScanner` and/or `CallGraphAnalyzer` rather than writing a
-   new scanner).
-2. Register the validator that evaluates it via
-   `META-INF/services/io.wogu.api.WorkflowValidator` (already done for `wogu-temporal`;
-   adding a rule to an existing validator needs no new registration at all).
-3. Write `docs/rules/WG0NN.md` following the [WG001.md](docs/rules/WG001.md) template.
+```yaml
+id: WG002
+type: forbidden-method
+title: Thread.sleep() inside Workflow
+category: Determinism
+severity: ERROR
+engine: Temporal Java SDK
+since: 0.2.0
+documentation: docs/rules/WG002.md
+description: >-
+  Thread.sleep() blocks the current worker thread. ...
+replacement: >-
+  Use Workflow.sleep(Duration) instead of Thread.sleep(). ...
+methods:
+  - java.lang.Thread.sleep
+```
 
-`ValidationEngine.discover()` finds validators via `ServiceLoader` — no registry to edit,
-no switch statement to extend. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full
-walkthrough, including how to add support for an entirely new workflow engine.
+Adding another rule of this shape is: **drop a new YAML file in that directory** and
+write its `docs/rules/WG0NN.md` (following the [WG001.md](docs/rules/WG001.md)
+template) — nothing else. `RuleDefinitionLoader` scans the classpath for `rules/*.yaml`
+at startup (works whether that's an exploded directory during a test run or packaged
+inside the real plugin jar), so there's no filename to register anywhere, and neither
+`wogu-core` nor `wogu-report` nor either build-tool plugin needs to change.
+
+A rule that needs real analysis logic (a future workflow-complexity check, a
+ContinueAsNew recommendation, versioning safety, activity configuration validation) is
+the exception: it extends the `CustomRule` base class and is registered in
+`TemporalWorkflowValidator`'s (currently empty) custom-rules list. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for the full walkthrough of both paths, including how
+to add support for an entirely new workflow engine.
 
 ## Building from source
 
@@ -249,11 +272,14 @@ itself; see [VERSIONING.md](VERSIONING.md)).
 ## Project status
 
 Three rules, one workflow engine, and a reusable call-graph analysis engine behind all of
-them. WG002 and WG003 were added after WG001 without touching `wogu-core`, `wogu-report`,
-or either build-tool plugin — the architecture — SPI-based validator discovery, rules as
-first-class metadata independent of validator implementation, an engine agnostic to any
-specific rule, a report renderer agnostic to any specific engine — is designed to keep
-scaling to dozens of rules and multiple workflow engines the same way. Configuration
+them. All three are declarative YAML definitions executed by one generic
+`ForbiddenMethodRule` — none of them are hand-written Java classes anymore — without
+touching `wogu-core`, `wogu-report`, or either build-tool plugin. The architecture —
+SPI-based validator discovery, rules as first-class metadata independent of validator
+implementation, an engine agnostic to any specific rule, a report renderer agnostic to
+any specific engine — is designed to comfortably scale to 100+ rules and multiple
+workflow engines the same way, with Java required only for the minority of rules that
+need real analysis logic beyond a method-call pattern (see `CustomRule`). Configuration
 (enabling/disabling specific rules, ignoring specific classes) is not implemented yet, but
 every rule already has a stable, unique id to key that off of when it is.
 

@@ -8,6 +8,26 @@ project adheres to [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+### Changed
+
+- **Forbidden-method rules are now declarative YAML, not Java classes.** WG001, WG002,
+  and WG003 are each a small YAML file under `wogu-temporal/src/main/resources/rules`
+  (`id`, `type: forbidden-method`, metadata, `description`, `replacement`, `methods`),
+  executed by one new generic `ForbiddenMethodRule`. The three hand-written
+  `UuidRandomUuidRule` / `ThreadSleepRule` / `NonDeterministicTimeApiRule` classes are
+  deleted. New `RuleDefinitionLoader` scans the classpath for `rules/*.yaml` (as an
+  exploded directory or packaged inside a jar) and parses each into a validated,
+  strongly-typed `RuleDefinition` — the only class in WoGu aware the format is YAML. New
+  `RuleRegistry` maps a definition's `type` to the `TemporalRule` that executes it (a
+  `Map`-based factory registry, today just `forbidden-method` → `ForbiddenMethodRule`).
+  New `RuleDefinition.toRule()` maps the common metadata fields onto `io.wogu.api.Rule`,
+  shared by every declarative rule type. New `CustomRule` base class is the designed
+  extension point for future rules that need real analysis logic instead of a
+  method-call pattern (unused today). Adding another `forbidden-method` rule is now
+  "add a YAML file" — no Java, no registration step, no report or engine change.
+  Zero visible behavior change: every rule's id, category, severity, message, and
+  suggested-fix text is byte-for-byte identical to before.
+
 ### Added
 
 - **WG002 — Thread.sleep() inside Workflow** (Determinism). Flags `Thread.sleep(...)`

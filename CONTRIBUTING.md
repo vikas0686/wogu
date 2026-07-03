@@ -20,9 +20,11 @@ wogu-parent          (root aggregator pom.xml)
                      Violation, CallPathFrame, Severity. No engine dependencies.
   wogu-core          ValidationEngine (ServiceLoader-based discovery and execution) and
                      ConsoleReportRenderer, shared by both build-tool plugins.
-  wogu-temporal       Temporal SDK rules (WG001 today), the CallGraphAnalyzer engine
-                     those rules are built on, and the WorkflowImplementationScanner
-                     they share.
+  wogu-temporal       Temporal SDK rules (WG001-WG003 today, all declarative YAML under
+                     src/main/resources/rules), the RuleRegistry/RuleDefinitionLoader
+                     pipeline and generic ForbiddenMethodRule that execute them, the
+                     CallGraphAnalyzer engine they're built on, and the
+                     WorkflowImplementationScanner they share.
   wogu-report        HtmlReportGenerator: renders a ValidationSummary as index.html.
   wogu-maven-plugin  The wogu:validate Maven goal.
   wogu-gradle-plugin Independent Gradle build; the woguValidate Gradle task.
@@ -99,26 +101,52 @@ rule with a mismatched id/category throws immediately:
 
 ## Adding a new rule
 
-This is the extension point the whole architecture is built around — it should never
-require touching `wogu-core` or `wogu-report`:
+Most rules need **no Java code at all**. This is the primary extension point the
+architecture is built around, and it should never require touching `wogu-core` or
+`wogu-report`.
 
-1. Implement the rule's logic. In `wogu-temporal`, that means implementing the
-   package-private `TemporalRule` interface (see `UuidRandomUuidRule`/WG001 for the
-   pattern) and adding an instance to `TemporalWorkflowValidator`'s rule list. If your rule
-   needs to know which classes are workflow implementations, reuse
-   `WorkflowImplementationScanner`; if it needs to check whether some code is reachable
-   from a workflow entry point (not just directly present in the workflow class), reuse
-   `CallGraphAnalyzer` with your own `CallTarget` — don't write a new scanner.
-2. Give it a `Rule` with the next free id in the right category's range (see above).
-3. Write tests. `wogu-temporal`'s tests write real source to a `@TempDir` and parse it —
-   don't mock JavaParser types.
-4. Add `docs/rules/WG0NN.md` following the template in `WG001.md`: Problem, Why this
+### Declarative rules (the common case)
+
+If your rule is "flag every reachable call to this specific static method" — which is
+what WG001, WG002, and WG003 all are — it's a YAML file, nothing more:
+
+1. Add `wogu-temporal/src/main/resources/rules/wg0nn.yaml` with `type: forbidden-method`,
+   the metadata fields (`id`, `title`, `category`, `severity`, `engine`, `since`,
+   `documentation`), `description` (the teaching-style explanation, becomes the
+   violation's message), `replacement` (the suggested fix), and a `methods` list of fully
+   qualified `Class.method` references (e.g. `java.lang.Thread.sleep`). See any of
+   `wg001.yaml`/`wg002.yaml`/`wg003.yaml` for the exact shape.
+2. Give it the next free id in the right category's range (see above) — `Rule`'s
+   constructor rejects a mismatch, so getting this wrong fails loudly, not silently.
+3. Add `docs/rules/WG0NN.md` following the template in `WG001.md`: Problem, Why this
    matters, Bad Example, Good Example, Recommended Fix, References, False Positives, Since
    Version.
+4. Add a test. `wogu-temporal`'s existing rule tests (e.g. the WG002/WG003 test classes)
+   write real source to a `@TempDir` and validate through `TemporalWorkflowValidator` end
+   to end — don't mock JavaParser types, and don't write a new AST scanner: reuse
+   `WorkflowImplementationScanner` (workflow classes and entry points) and
+   `CallGraphAnalyzer` (reachability), which `ForbiddenMethodRule` already wires up for you.
 
-That's it — `ValidationEngine.discover()` picks up any validator (and therefore any rule
-it declares) on the classpath with a service declaration. No registry, no switch
-statement, no core change.
+`RuleDefinitionLoader` scans the classpath for `rules/*.yaml` at startup — there is no
+filename to register anywhere, in Java or otherwise. New rule *types* beyond
+`forbidden-method` (e.g. a future `forbidden-constructor` or `required-annotation`) are
+added by registering one more factory in `RuleRegistry`'s type map; that's the only place
+a rule "type" is dispatched, and it's a data-driven map, not a switch statement or an
+if/else chain.
+
+### Custom (hand-written) rules — the exception
+
+Some rules genuinely can't be expressed as a method-call pattern — a workflow-complexity
+check, a ContinueAsNew recommendation, versioning safety, activity configuration
+validation. For those, extend `CustomRule` (implements `TemporalRule`, handles metadata
+storage for you) and add an instance to `TemporalWorkflowValidator`'s `CUSTOM_RULES` list
+(empty today). Everything else about how the rule is registered, executed, and reported
+is identical to a declarative rule — `CustomRule` only replaces *how violations are found*,
+not the surrounding machinery.
+
+Either way, `ValidationEngine.discover()` still only ever discovers the one registered
+`WorkflowValidator` per engine module via `ServiceLoader` — the registry described above
+lives entirely inside `wogu-temporal`, one level below that.
 
 ## Adding a new workflow engine (Conductor, Camunda, Airflow, ...)
 

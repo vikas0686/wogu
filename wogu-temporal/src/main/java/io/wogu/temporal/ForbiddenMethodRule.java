@@ -1,25 +1,29 @@
 package io.wogu.temporal;
 
+import com.github.javaparser.ast.body.MethodDeclaration;
 import io.wogu.api.Rule;
 import io.wogu.api.ValidationContext;
 import io.wogu.api.Violation;
 import io.wogu.temporal.callgraph.CallGraphAnalyzer;
 import io.wogu.temporal.callgraph.CallTarget;
+import io.wogu.temporal.callgraph.ConstructorCallTarget;
 import io.wogu.temporal.callgraph.StaticMethodCallTarget;
 import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * The {@code forbidden-method} declarative rule type: flags every reachable call to one
- * or more specific static methods, listed in a {@link RuleDefinition}'s {@code methods}.
+ * or more specific methods (via {@code methods}) and/or construction of one or more
+ * specific classes (via {@code constructors}), listed in a {@link RuleDefinition}.
  *
- * <p>This is the generic engine behind WG001 ({@code UUID.randomUUID()}), WG002
- * ({@code Thread.sleep()}), WG003 (several non-deterministic time APIs), and any future
- * "flag this method call" rule — none of which need a dedicated Java class anymore.
- * Adding one is purely a matter of adding a YAML definition with
- * {@code type: forbidden-method} under {@code src/main/resources/rules}; this class reads
- * its {@code methods} list, builds a {@link StaticMethodCallTarget} per entry, and reuses
- * {@link TemporalRuleSupport} for the actual call-graph traversal and violation building —
- * exactly the same infrastructure the three original hand-written rules used.
+ * <p>This is the generic engine behind WG001 ({@code UUID.randomUUID()}) through WG010
+ * (thread/executor creation), and any future "flag this method call or this constructor"
+ * rule — none of which need a dedicated Java class. Adding one is purely a matter of
+ * adding a YAML definition with {@code type: forbidden-method} under
+ * {@code src/main/resources/rules}; this class reads its {@code methods}/{@code constructors}
+ * lists, builds the matching {@link CallTarget}s, and reuses {@link TemporalRuleSupport}
+ * for the actual call-graph traversal and violation building.
  */
 final class ForbiddenMethodRule implements TemporalRule {
 
@@ -30,7 +34,11 @@ final class ForbiddenMethodRule implements TemporalRule {
 
   ForbiddenMethodRule(RuleDefinition definition) {
     this.metadata = definition.toRule();
-    this.targets = definition.methods().stream().map(ForbiddenMethodRule::toCallTarget).toList();
+    this.targets =
+        Stream.concat(
+                definition.methods().stream().map(ForbiddenMethodRule::toMethodCallTarget),
+                definition.constructors().stream().map(ConstructorCallTarget::new))
+            .toList();
     this.message = definition.description();
     this.suggestedFix = definition.replacement();
   }
@@ -42,8 +50,12 @@ final class ForbiddenMethodRule implements TemporalRule {
 
   @Override
   public List<Violation> evaluate(
-      ValidationContext context, List<ScannedWorkflowClass> workflowClasses, CallGraphAnalyzer callGraph) {
-    return TemporalRuleSupport.findViolations(workflowClasses, callGraph, targets, metadata, context, message, suggestedFix);
+      ValidationContext context,
+      List<ScannedWorkflowClass> workflowClasses,
+      CallGraphAnalyzer callGraph,
+      Predicate<MethodDeclaration> activityBoundary) {
+    return TemporalRuleSupport.findViolations(
+        workflowClasses, callGraph, targets, metadata, context, message, suggestedFix, activityBoundary);
   }
 
   /**
@@ -51,7 +63,7 @@ final class ForbiddenMethodRule implements TemporalRule {
    * {@code "java.util.UUID.randomUUID"}) at its last dot into a class name and a method
    * name, matching how {@link StaticMethodCallTarget} identifies the method it matches.
    */
-  private static CallTarget toCallTarget(String qualifiedMethodReference) {
+  private static CallTarget toMethodCallTarget(String qualifiedMethodReference) {
     int lastDot = qualifiedMethodReference.lastIndexOf('.');
     if (lastDot < 0) {
       throw new IllegalArgumentException(

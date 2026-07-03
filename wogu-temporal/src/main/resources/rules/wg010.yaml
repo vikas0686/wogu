@@ -1,0 +1,29 @@
+id: WG010
+type: forbidden-method
+title: ExecutorService inside Workflow
+category: Determinism
+severity: ERROR
+engine: Temporal Java SDK
+since: 0.3.0
+documentation: https://github.com/vikas0686/wogu/tree/main/docs/rules/WG010.md
+
+description: >-
+  Temporal workflows must not create or manage Java threads. A workflow's code must run
+  entirely on the workflow's single logical thread so that its execution can be replayed
+  deterministically from event history; creating your own threads or thread pools escapes
+  that guarantee and can cause workflow execution to diverge from recorded history, or
+  simply never resolve during replay.
+
+replacement: >-
+  Use Temporal Async APIs (Async.function/Async.procedure, or an Activity) instead of
+  creating your own threads or executors.
+
+methods:
+  - java.util.concurrent.Executors.newFixedThreadPool
+  - java.util.concurrent.Executors.newCachedThreadPool
+  - java.util.concurrent.Executors.newSingleThreadExecutor
+  - java.util.concurrent.CompletableFuture.supplyAsync
+  - java.util.concurrent.ForkJoinPool.commonPool
+
+constructors:
+  - java.lang.Thread

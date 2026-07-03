@@ -1,6 +1,7 @@
 package io.wogu.temporal;
 
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.body.MethodDeclaration;
 import io.wogu.api.Rule;
 import io.wogu.api.RuleResult;
 import io.wogu.api.ValidationContext;
@@ -12,6 +13,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 /**
@@ -59,11 +61,12 @@ public final class TemporalWorkflowValidator implements WorkflowValidator {
     List<CompilationUnit> units = SourceRootParser.parse(context.sourceRoots());
     List<ScannedWorkflowClass> workflowClasses = scanner.scan(units);
     CallGraphAnalyzer callGraph = new CallGraphAnalyzer();
+    Predicate<MethodDeclaration> activityBoundary = ActivityAwareness.activityBoundary(units);
 
     List<RuleResult> ruleResults = new ArrayList<>(rules.size());
     for (TemporalRule rule : rules) {
       Instant start = Instant.now();
-      List<Violation> violations = rule.evaluate(context, workflowClasses, callGraph);
+      List<Violation> violations = rule.evaluate(context, workflowClasses, callGraph, activityBoundary);
       Duration elapsed = Duration.between(start, Instant.now());
       ruleResults.add(RuleResult.of(rule.metadata(), violations, elapsed));
     }

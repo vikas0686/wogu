@@ -11,6 +11,7 @@ import io.wogu.temporal.callgraph.CallTarget;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * Shared plumbing every {@link TemporalRule} built on {@link CallGraphAnalyzer} reuses:
@@ -21,7 +22,7 @@ import java.util.List;
  * "for each workflow class, for each entry point, for each match, build a violation"
  * loop and the same file-path relativization. A new rule of this shape should only need
  * to supply its {@link Rule} metadata, a {@link CallTarget} (or several — see
- * {@link #findViolations(List, CallGraphAnalyzer, List, Rule, ValidationContext, String, String)}),
+ * {@link #findViolations(List, CallGraphAnalyzer, List, Rule, ValidationContext, String, String, Predicate)}),
  * and its message/suggested-fix text.
  */
 final class TemporalRuleSupport {
@@ -36,8 +37,9 @@ final class TemporalRuleSupport {
       Rule rule,
       ValidationContext context,
       String message,
-      String suggestedFix) {
-    return findViolations(workflowClasses, callGraph, List.of(target), rule, context, message, suggestedFix);
+      String suggestedFix,
+      Predicate<MethodDeclaration> activityBoundary) {
+    return findViolations(workflowClasses, callGraph, List.of(target), rule, context, message, suggestedFix, activityBoundary);
   }
 
   /**
@@ -45,6 +47,10 @@ final class TemporalRuleSupport {
    * returns one {@link Violation} per match found, across all of them. Used by rules that
    * flag several distinct call patterns under one rule id (e.g. WG003's several
    * non-deterministic time APIs).
+   *
+   * @param activityBoundary matches every method that is part of a Temporal Activity
+   *     implementation; traversal stops there, since Activity code isn't subject to
+   *     workflow replay determinism constraints
    */
   static List<Violation> findViolations(
       List<ScannedWorkflowClass> workflowClasses,
@@ -53,12 +59,13 @@ final class TemporalRuleSupport {
       Rule rule,
       ValidationContext context,
       String message,
-      String suggestedFix) {
+      String suggestedFix,
+      Predicate<MethodDeclaration> activityBoundary) {
     List<Violation> violations = new ArrayList<>();
     for (ScannedWorkflowClass workflowClass : workflowClasses) {
       for (MethodDeclaration entryPoint : workflowClass.entryPoints()) {
         for (CallTarget target : targets) {
-          for (CallGraphMatch match : callGraph.findCallPaths(entryPoint, target)) {
+          for (CallGraphMatch match : callGraph.findCallPaths(entryPoint, target, activityBoundary)) {
             violations.add(toViolation(rule, context, match, message, suggestedFix));
           }
         }

@@ -23,6 +23,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 class CallGraphAnalyzerTest {
 
+  private static final CallTarget RANDOM_CONSTRUCTOR = new ConstructorCallTarget("java.util.Random");
+
   private static final CallTarget UUID_RANDOM_UUID =
       new CallTarget() {
         @Override
@@ -220,5 +222,128 @@ class CallGraphAnalyzerTest {
     List<CallGraphMatch> matches = analyzer.findCallPaths(entry, UUID_RANDOM_UUID);
 
     assertThat(matches).hasSize(2);
+  }
+
+  @Test
+  void findsAConstructorMatchInTheEntryPointItself() throws IOException {
+    writeJavaFile(
+        "Foo.java",
+        """
+        import java.util.Random;
+
+        class Foo {
+          void run() {
+            new Random();
+          }
+        }
+        """);
+
+    MethodDeclaration entry = methodNamed(parse(), "Foo", "run");
+    List<CallGraphMatch> matches = analyzer.findCallPaths(entry, RANDOM_CONSTRUCTOR);
+
+    assertThat(matches).hasSize(1);
+    assertThat(matches.get(0).path()).extracting(CallPathFrame::displayName).containsExactly("Foo.run()", "new Random()");
+  }
+
+  @Test
+  void findsAConstructorMatchReachableThroughAMultiHopCallChain() throws IOException {
+    writeJavaFile(
+        "PaymentWorkflowImpl.java",
+        """
+        class PaymentWorkflowImpl {
+          private final OrderService orderService = new OrderService();
+
+          void processPayment() {
+            orderService.createOrder();
+          }
+        }
+        """);
+    writeJavaFile(
+        "OrderService.java",
+        """
+        import java.util.Random;
+
+        class OrderService {
+          void createOrder() {
+            new Random();
+          }
+        }
+        """);
+
+    List<CompilationUnit> units = parse();
+    MethodDeclaration entry = methodNamed(units, "PaymentWorkflowImpl", "processPayment");
+    List<CallGraphMatch> matches = analyzer.findCallPaths(entry, RANDOM_CONSTRUCTOR);
+
+    assertThat(matches).hasSize(1);
+    assertThat(matches.get(0).containingClassName()).isEqualTo("OrderService");
+    assertThat(matches.get(0).path())
+        .extracting(CallPathFrame::displayName)
+        .containsExactly("PaymentWorkflowImpl.processPayment()", "OrderService.createOrder()", "new Random()");
+  }
+
+  @Test
+  void aTraversalBoundaryStopsRecursionIntoAMatchingMethodWithoutReportingItsCalls() throws IOException {
+    writeJavaFile(
+        "Foo.java",
+        """
+        class Foo {
+          private final Activity activity = new Activity();
+
+          void run() {
+            activity.doWork();
+          }
+        }
+        """);
+    writeJavaFile(
+        "Activity.java",
+        """
+        import java.util.UUID;
+
+        class Activity {
+          void doWork() {
+            UUID.randomUUID();
+          }
+        }
+        """);
+
+    List<CompilationUnit> units = parse();
+    MethodDeclaration entry = methodNamed(units, "Foo", "run");
+    List<CallGraphMatch> matches =
+        analyzer.findCallPaths(entry, UUID_RANDOM_UUID, method -> method.getNameAsString().equals("doWork"));
+
+    assertThat(matches).isEmpty();
+  }
+
+  @Test
+  void aTraversalBoundaryDoesNotAffectMethodsOutsideIt() throws IOException {
+    writeJavaFile(
+        "Foo.java",
+        """
+        import java.util.UUID;
+
+        class Foo {
+          private final Activity activity = new Activity();
+
+          void run() {
+            activity.doWork();
+            UUID.randomUUID();
+          }
+        }
+        """);
+    writeJavaFile(
+        "Activity.java",
+        """
+        class Activity {
+          void doWork() {
+          }
+        }
+        """);
+
+    List<CompilationUnit> units = parse();
+    MethodDeclaration entry = methodNamed(units, "Foo", "run");
+    List<CallGraphMatch> matches =
+        analyzer.findCallPaths(entry, UUID_RANDOM_UUID, method -> method.getNameAsString().equals("doWork"));
+
+    assertThat(matches).hasSize(1);
   }
 }

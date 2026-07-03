@@ -30,6 +30,9 @@ import java.util.Objects;
  * @param replacement suggested fix text; becomes a {@link io.wogu.api.Violation#suggestedFix()}
  * @param methods for {@code forbidden-method} rules: fully qualified {@code Class.method}
  *     references, e.g. {@code "java.util.UUID.randomUUID"}; empty for other types
+ * @param constructors for {@code forbidden-method} rules that also (or instead) flag
+ *     constructing a specific class: fully qualified class names, e.g.
+ *     {@code "java.util.Random"}; empty for rules that only flag method calls
  * @param tags free-form labels, reserved for future use (not yet rendered anywhere)
  */
 record RuleDefinition(
@@ -44,6 +47,7 @@ record RuleDefinition(
     String documentation,
     String replacement,
     List<String> methods,
+    List<String> constructors,
     List<String> tags) {
 
   RuleDefinition {
@@ -58,6 +62,7 @@ record RuleDefinition(
     Objects.requireNonNull(documentation, "documentation");
     Objects.requireNonNull(replacement, "replacement");
     methods = List.copyOf(Objects.requireNonNull(methods, "methods"));
+    constructors = List.copyOf(Objects.requireNonNull(constructors, "constructors"));
     tags = List.copyOf(Objects.requireNonNull(tags, "tags"));
   }
 

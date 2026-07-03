@@ -105,7 +105,10 @@ class RuleDefinitionLoaderTest {
   void loadAllFindsTheRealRuleDefinitionsPackagedInThisModule() {
     List<RuleDefinition> definitions = loader.loadAll();
 
-    assertThat(definitions).extracting(RuleDefinition::id).containsExactlyInAnyOrder("WG001", "WG002", "WG003");
+    assertThat(definitions)
+        .extracting(RuleDefinition::id)
+        .containsExactlyInAnyOrder(
+            "WG001", "WG002", "WG003", "WG004", "WG005", "WG006", "WG007", "WG008", "WG009", "WG010");
     assertThat(definitions).allSatisfy(definition -> assertThat(definition.type()).isEqualTo("forbidden-method"));
   }
 }

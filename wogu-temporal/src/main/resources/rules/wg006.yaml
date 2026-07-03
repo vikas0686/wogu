@@ -1,0 +1,23 @@
+id: WG006
+type: forbidden-method
+title: ThreadLocalRandom inside Workflow
+category: Determinism
+severity: ERROR
+engine: Temporal Java SDK
+since: 0.3.0
+documentation: https://github.com/vikas0686/wogu/tree/main/docs/rules/WG006.md
+
+description: >-
+  ThreadLocalRandom is a source of non-deterministic randomness, and its instance is tied
+  to the calling thread rather than to the workflow. Temporal workflows replay workflow
+  code from event history, so drawing from it during replay may produce a different
+  result than the original execution and cause workflow execution to diverge from
+  recorded history.
+
+replacement: >-
+  Use Workflow.newRandom() (or another Temporal-provided deterministic alternative)
+  instead. It is seeded from workflow history, so it produces the same sequence of values
+  on every replay.
+
+methods:
+  - java.util.concurrent.ThreadLocalRandom.current

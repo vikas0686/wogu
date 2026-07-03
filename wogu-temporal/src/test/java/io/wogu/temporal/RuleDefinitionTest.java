@@ -23,6 +23,7 @@ class RuleDefinitionTest {
         "docs/rules/" + id + ".md",
         "Example replacement",
         List.of("java.util.UUID.randomUUID"),
+        List.of(),
         List.of());
   }
 

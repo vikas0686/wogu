@@ -1,0 +1,19 @@
+id: WG009
+type: forbidden-method
+title: System.getProperty() inside Workflow
+category: Determinism
+severity: ERROR
+engine: Temporal Java SDK
+since: 0.3.0
+documentation: https://github.com/vikas0686/wogu/tree/main/docs/rules/WG009.md
+
+description: >-
+  System properties may differ during replay (a different worker host, a redeployed
+  environment, a changed JVM configuration). Reading them directly inside workflow code
+  can cause workflow execution to diverge from recorded history.
+
+replacement: >-
+  Read configuration outside the workflow or via an Activity.
+
+methods:
+  - java.lang.System.getProperty

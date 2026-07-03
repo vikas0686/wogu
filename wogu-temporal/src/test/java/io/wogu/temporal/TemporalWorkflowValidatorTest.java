@@ -33,8 +33,11 @@ class TemporalWorkflowValidatorTest {
   }
 
   @Test
-  void declaresWG001WG002AndWG003AsItsRules() {
-    assertThat(validator.rules()).extracting(Rule::id).containsExactly("WG001", "WG002", "WG003");
+  void declaresWG001ThroughWG010AsItsRules() {
+    assertThat(validator.rules())
+        .extracting(Rule::id)
+        .containsExactlyInAnyOrder(
+            "WG001", "WG002", "WG003", "WG004", "WG005", "WG006", "WG007", "WG008", "WG009", "WG010");
   }
 
   @Test
@@ -206,6 +209,74 @@ class TemporalWorkflowValidatorTest {
 
         public class PlainIdGenerator {
           public String next() {
+            return UUID.randomUUID().toString();
+          }
+        }
+        """);
+
+    RuleResult wg001 = onlyResult(validator.validate(context()));
+
+    assertThat(wg001.passed()).isTrue();
+    assertThat(wg001.violations()).isEmpty();
+  }
+
+  @Test
+  void doesNotFlagAViolationOnlyReachableByResolvingDirectlyIntoAnAnnotatedActivityImplementation() throws IOException {
+    // Unlike the "natural boundary" case (a field typed as the Activity *interface*, where
+    // resolution dead-ends on the interface's bodyless method with no help needed from
+    // WoGu), this field is typed as the Activity *implementation* directly, so resolution
+    // genuinely reaches real, callable source. Only the explicit @ActivityInterface /
+    // @ActivityMethod annotation check stops traversal from continuing into it.
+    writeJavaFile(
+        "com/example/PaymentWorkflow.java",
+        """
+        package com.example;
+
+        import io.temporal.workflow.WorkflowInterface;
+
+        @WorkflowInterface
+        public interface PaymentWorkflow {
+          void pay();
+        }
+        """);
+    writeJavaFile(
+        "com/example/PaymentWorkflowImpl.java",
+        """
+        package com.example;
+
+        public class PaymentWorkflowImpl implements PaymentWorkflow {
+          private final PaymentActivityImpl activity = new PaymentActivityImpl();
+
+          @Override
+          public void pay() {
+            activity.generateId();
+          }
+        }
+        """);
+    writeJavaFile(
+        "com/example/PaymentActivity.java",
+        """
+        package com.example;
+
+        import io.temporal.activity.ActivityInterface;
+        import io.temporal.activity.ActivityMethod;
+
+        @ActivityInterface
+        public interface PaymentActivity {
+          @ActivityMethod
+          String generateId();
+        }
+        """);
+    writeJavaFile(
+        "com/example/PaymentActivityImpl.java",
+        """
+        package com.example;
+
+        import java.util.UUID;
+
+        public class PaymentActivityImpl implements PaymentActivity {
+          @Override
+          public String generateId() {
             return UUID.randomUUID().toString();
           }
         }

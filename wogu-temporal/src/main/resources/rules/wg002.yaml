@@ -1,0 +1,20 @@
+id: WG002
+type: forbidden-method
+title: Thread.sleep() inside Workflow
+category: Determinism
+severity: ERROR
+engine: Temporal Java SDK
+since: 0.2.0
+documentation: docs/rules/WG002.md
+
+description: >-
+  Thread.sleep() blocks the current worker thread. Temporal workflows must use
+  virtual timers instead of blocking threads; blocking a worker thread inside
+  workflow code breaks Temporal's programming model and can lead to replay issues.
+
+replacement: >-
+  Use Workflow.sleep(Duration) instead of Thread.sleep(). Workflow.sleep() is a
+  durable timer that does not block the worker thread and replays deterministically.
+
+methods:
+  - java.lang.Thread.sleep

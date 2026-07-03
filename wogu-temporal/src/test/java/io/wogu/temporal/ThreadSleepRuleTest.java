@@ -34,7 +34,7 @@ class ThreadSleepRuleTest {
   private RuleResult wg002Result() {
     ValidatorRunOutcome outcome = validator.validate(context());
     return outcome.ruleResults().stream()
-        .filter(result -> result.rule().id().equals(ThreadSleepRule.ID))
+        .filter(result -> result.rule().id().equals("WG002"))
         .findFirst()
         .orElseThrow();
   }

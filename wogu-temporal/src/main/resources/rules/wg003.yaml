@@ -1,0 +1,29 @@
+id: WG003
+type: forbidden-method
+title: Non-deterministic Time APIs inside Workflow
+category: Determinism
+severity: ERROR
+engine: Temporal Java SDK
+since: 0.2.0
+documentation: docs/rules/WG003.md
+
+description: >-
+  This API returns the current wall-clock time. Temporal workflows replay workflow
+  code from event history, so reading the current system time during replay may
+  produce a different value than the original execution and cause workflow
+  execution to diverge from recorded history.
+
+replacement: >-
+  Use Workflow.currentTimeMillis() (or another Temporal-provided deterministic time
+  API) instead. It returns the time as recorded in workflow history, so it is
+  stable across replay.
+
+methods:
+  - java.lang.System.currentTimeMillis
+  - java.time.Instant.now
+  - java.time.LocalDate.now
+  - java.time.LocalDateTime.now
+  - java.time.OffsetDateTime.now
+  - java.time.ZonedDateTime.now
+  - java.time.Clock.systemUTC
+  - java.time.Clock.systemDefaultZone

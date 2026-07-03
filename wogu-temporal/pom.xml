@@ -15,11 +15,13 @@
 
   <name>WoGu Temporal</name>
   <description>
-    Temporal Java SDK validators for WoGu. Contains the WG001 rule (flags
-    UUID.randomUUID() usage reachable from a workflow entry point), the reusable
-    CallGraphAnalyzer future rules build on, and the WorkflowImplementationScanner shared
-    by future Temporal-specific rules. Analyzes project source with JavaParser; has no
-    compile-time dependency on the Temporal SDK itself, since detection is source-based.
+    Temporal Java SDK rules for WoGu (WG001-WG003 today), most of them declared as YAML
+    definitions under src/main/resources/rules and executed by the generic
+    ForbiddenMethodRule, so adding a "flag this static method call" rule requires no Java
+    code. Contains the reusable CallGraphAnalyzer engine, the WorkflowImplementationScanner,
+    and the RuleRegistry/RuleDefinitionLoader pipeline those declarative rules are built on.
+    Analyzes project source with JavaParser; has no compile-time dependency on the
+    Temporal SDK itself, since detection is source-based.
   </description>
 
   <dependencies>
@@ -30,6 +32,10 @@
     <dependency>
       <groupId>com.github.javaparser</groupId>
       <artifactId>javaparser-symbol-solver-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>

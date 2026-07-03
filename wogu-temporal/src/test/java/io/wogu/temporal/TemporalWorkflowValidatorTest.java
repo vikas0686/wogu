@@ -219,7 +219,7 @@ class TemporalWorkflowValidatorTest {
 
   private static RuleResult onlyResult(ValidatorRunOutcome outcome) {
     return outcome.ruleResults().stream()
-        .filter(result -> result.rule().id().equals(UuidRandomUuidRule.ID))
+        .filter(result -> result.rule().id().equals("WG001"))
         .findFirst()
         .orElseThrow();
   }

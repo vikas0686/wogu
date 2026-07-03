@@ -34,7 +34,7 @@ class NonDeterministicTimeApiRuleTest {
   private RuleResult wg003Result() {
     ValidatorRunOutcome outcome = validator.validate(context());
     return outcome.ruleResults().stream()
-        .filter(result -> result.rule().id().equals(NonDeterministicTimeApiRule.ID))
+        .filter(result -> result.rule().id().equals("WG003"))
         .findFirst()
         .orElseThrow();
   }

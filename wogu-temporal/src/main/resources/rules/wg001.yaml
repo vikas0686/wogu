@@ -1,0 +1,22 @@
+id: WG001
+type: forbidden-method
+title: UUID.randomUUID() inside Workflow
+category: Determinism
+severity: ERROR
+engine: Temporal Java SDK
+since: 0.1.0
+documentation: docs/rules/WG001.md
+
+description: >-
+  UUID.randomUUID() generates a different value every execution. Temporal workflows
+  replay workflow code from event history, so using UUID.randomUUID() produces a
+  new value during replay, which can cause workflow execution to diverge from
+  recorded history and result in a NonDeterministicException.
+
+replacement: >-
+  Use Workflow.randomUUID() instead. It is backed by a deterministic random number
+  generator seeded from workflow history, so it produces the same value on every
+  replay.
+
+methods:
+  - java.util.UUID.randomUUID

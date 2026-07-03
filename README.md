@@ -22,12 +22,20 @@ they belong in the build, caught automatically, every time.
 
 ## What's implemented
 
-One rule: **WG001 — `UUID.randomUUID()` inside Workflow** (category: Determinism). It
-flags `UUID.randomUUID()` reachable from a Temporal workflow's entry point — not just
-direct usage inside the workflow implementation class, but calls several methods away,
-via a reusable call-graph analysis engine (see [below](#call-graph-analysis)). The fix —
-`Workflow.randomUUID()` — is deterministic and is exactly what the report suggests. Full
-rule documentation, including bad/good examples: [docs/rules/WG001.md](docs/rules/WG001.md).
+Three Determinism rules for the Temporal Java SDK, all reachable-from-a-workflow-entry-
+point checks built on the same [call-graph analysis engine](#call-graph-analysis) — not
+just direct usage inside the workflow implementation class, but calls several methods
+away:
+
+| Rule | Flags | Fix |
+|---|---|---|
+| [WG001](docs/rules/WG001.md) | `UUID.randomUUID()` | `Workflow.randomUUID()` |
+| [WG002](docs/rules/WG002.md) | `Thread.sleep(...)` | `Workflow.sleep(Duration)` |
+| [WG003](docs/rules/WG003.md) | `System.currentTimeMillis()`, `Instant.now()`, `LocalDate.now()`, `LocalDateTime.now()`, `OffsetDateTime.now()`, `ZonedDateTime.now()`, `Clock.systemUTC()`, `Clock.systemDefaultZone()` | `Workflow.currentTimeMillis()` |
+
+Each is a self-contained addition to `TemporalWorkflowValidator`'s rule list — none of
+them required a change to `wogu-core`, `wogu-report`, or either build-tool plugin (see
+[Adding a rule](#adding-a-rule)).
 
 ## Quick start
 
@@ -67,7 +75,8 @@ wires it into `build`.
 
 ## What it looks like
 
-Console output on a build with a violation, reached through one intermediate method call:
+Console output on a build with one violation, reached through one intermediate method
+call — note all three rules run and are reported, even though only one finds anything:
 
 ```
 ----------------------------------------------------
@@ -80,6 +89,8 @@ Scanning project...
 Running Rules...
 
 ✗ WG001 UUID.randomUUID() inside Workflow
+✓ WG002
+✓ WG003
 ----------------------------------------
 1 ERROR
 Build FAILED
@@ -89,8 +100,9 @@ target/wogu/index.html
 ```
 
 And the HTML report it writes (`target/wogu/index.html` for Maven,
-`build/reports/wogu/index.html` for Gradle), showing the full call path from the
-workflow's entry point down to the offending call:
+`build/reports/wogu/index.html` for Gradle), showing all three rules in the Rule Summary
+and the full call path from the workflow's entry point down to the offending call —
+rendered with no report-generator changes, since it reads purely from `Rule` metadata:
 
 ![WoGu report showing a failed build, with the Rule Summary table and a violation card displaying the call path from the workflow entry point down to UUID.randomUUID()](docs/images/report-failed.png)
 
@@ -131,12 +143,16 @@ class CustomerService {
 
 `io.wogu.temporal.callgraph.CallGraphAnalyzer` is this engine, and it's reusable: it takes
 a `CallTarget` (the pattern to look for — "is this call `UUID.randomUUID()`?") as a
-parameter, so a future rule for `Thread.sleep()`, `Instant.now()`,
-`System.currentTimeMillis()`, `Math.random()`, HTTP clients, JDBC, or file I/O reuses the
-exact same traversal instead of a new one-off scanner. When a call can't be resolved to
-project source (a third-party library, reflection, dynamic dispatch), traversal simply
-stops there rather than guessing — WoGu prefers missing a violation behind an unresolvable
-call over reporting a false positive.
+parameter, so WG002 (`Thread.sleep()`) and WG003 (eight non-deterministic time APIs)
+reuse the exact same traversal instead of new one-off scanners — each rule only supplies
+its own `CallTarget`(s) via the shared, generic
+`io.wogu.temporal.callgraph.StaticMethodCallTarget` ("this call is a specific class's
+specific static method"). A future rule for `Math.random()`, HTTP clients, JDBC, or file
+I/O follows the same pattern. When a call can't be resolved to project source (a
+third-party library, reflection, dynamic dispatch — notably including a call made through
+an Activity's interface, which is how Activities are correctly never flagged), traversal
+simply stops there rather than guessing — WoGu prefers missing a violation behind an
+unresolvable call over reporting a false positive.
 
 ## Architecture
 
@@ -151,7 +167,7 @@ wogu-parent                  root aggregator (Maven reactor)
                                aggregates their RuleResults. ConsoleReportRenderer: the
                                console output shared by both build-tool plugins. No
                                compile-time reference to any specific validator or rule.
-  wogu-temporal                Temporal Java SDK rules (WG001 today), the reusable
+  wogu-temporal                Temporal Java SDK rules (WG001–WG003 today), the reusable
                                CallGraphAnalyzer engine, and WorkflowImplementationScanner,
                                shared infrastructure for future Temporal-specific rules.
   wogu-report                  HtmlReportGenerator: renders a ValidationSummary as a
@@ -226,17 +242,18 @@ Gradle plugin and the samples, and how to run the intentionally-failing sample.
 
 ## Requirements
 
-Java 17+, Maven 3.9+ or Gradle 8+, Temporal Java SDK (any reasonably recent version —
-WG001's detection is syntactic and has no compile-time dependency on the SDK itself; see
-[VERSIONING.md](VERSIONING.md)).
+Java 17+, Maven 3.9+ or Gradle 8+, Temporal Java SDK (any reasonably recent version — all
+three rules' detection is source-based and has no compile-time dependency on the SDK
+itself; see [VERSIONING.md](VERSIONING.md)).
 
 ## Project status
 
-Proof of concept. One rule, one workflow engine, but a reusable call-graph analysis
-engine behind it. The architecture — SPI-based validator discovery, rules as first-class
-metadata independent of validator implementation, an engine agnostic to any specific rule,
-a report renderer agnostic to any specific engine — is designed to scale to dozens of
-rules and multiple workflow engines without changes to `wogu-core`. Configuration
+Three rules, one workflow engine, and a reusable call-graph analysis engine behind all of
+them. WG002 and WG003 were added after WG001 without touching `wogu-core`, `wogu-report`,
+or either build-tool plugin — the architecture — SPI-based validator discovery, rules as
+first-class metadata independent of validator implementation, an engine agnostic to any
+specific rule, a report renderer agnostic to any specific engine — is designed to keep
+scaling to dozens of rules and multiple workflow engines the same way. Configuration
 (enabling/disabling specific rules, ignoring specific classes) is not implemented yet, but
 every rule already has a stable, unique id to key that off of when it is.
 

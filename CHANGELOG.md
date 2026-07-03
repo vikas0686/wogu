@@ -8,7 +8,32 @@ project adheres to [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+### Added
+
+- **WG002 — Thread.sleep() inside Workflow** (Determinism). Flags `Thread.sleep(...)`
+  reachable from a Temporal workflow entry point, via the same call-graph engine as
+  WG001. Suggested fix: `Workflow.sleep(Duration)`.
+- **WG003 — Non-deterministic Time APIs inside Workflow** (Determinism). Flags
+  `System.currentTimeMillis()`, `Instant.now()`, `LocalDate.now()`, `LocalDateTime.now()`,
+  `OffsetDateTime.now()`, `ZonedDateTime.now()`, `Clock.systemUTC()`, and
+  `Clock.systemDefaultZone()` reachable from a Temporal workflow entry point. Suggested
+  fix: `Workflow.currentTimeMillis()`.
+- `docs/rules/WG002.md` and `docs/rules/WG003.md`, following the WG001.md template.
+- `io.wogu.temporal.callgraph.StaticMethodCallTarget`: a reusable `CallTarget` for "this
+  call is a specific class's specific static method" (qualified class name + method
+  name), handling explicit imports, wildcard imports, `java.lang`'s no-import-needed
+  classes (with correct handling of a shadowing import), fully qualified inline calls,
+  and static imports. Used by all three rules; adding WG002/WG003 required no new
+  AST-matching logic, only new instances of this class.
+- `io.wogu.temporal.TemporalRuleSupport`: the shared "for each workflow class, for each
+  entry point, for each target, convert call-graph matches into `Violation`s" logic every
+  call-graph-based rule needs, extracted so each rule's `evaluate()` is a one-liner
+  instead of duplicating the loop and file-path relativization.
+
 ### Changed
+
+- `UUIDRandomValidator`'s WG001-specific `UuidRandomUuidCallTarget` is replaced by the
+  generic `StaticMethodCallTarget("java.util.UUID", "randomUUID")`; no behavior change.
 
 - **Rules replace validators as WoGu's primary concept.** `WorkflowValidator` now declares
   `rules(): List<Rule>` and its `validate()` returns a `ValidatorRunOutcome` (one

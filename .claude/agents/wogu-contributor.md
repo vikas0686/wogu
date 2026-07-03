@@ -54,9 +54,11 @@ wogu-maven-plugin / wogu-gradle-plugin
 output — actually keys off of, because **one validator commonly evaluates many rules in
 a single pass**, sharing expensive setup (one source parse, one workflow scan, one call
 graph). In `wogu-temporal`: `TemporalWorkflowValidator` is the registered
-`WorkflowValidator`; it holds a list of package-private `TemporalRule` instances (today
-just `UuidRandomUuidRule`, rule id `WG001`) and returns one `RuleResult` per rule from
-`validate()`.
+`WorkflowValidator`; it holds a list of package-private `TemporalRule` instances
+(`UuidRandomUuidRule`/WG001, `ThreadSleepRule`/WG002, `NonDeterministicTimeApiRule`/WG003
+today) and returns one `RuleResult` per rule from `validate()`. Adding a rule to this list
+is the only integration point — see `TemporalRuleSupport` below for the shared logic that
+makes each rule's `evaluate()` a one-liner.
 
 Every rule id is `WG###`; `RuleCategory` reserves a fixed numeric range per category
 (Determinism `WG001`–`WG099`, Activities `WG100`–`WG199`, etc. — see
@@ -92,22 +94,41 @@ details if you touch this code:
 matching an `@WorkflowMethod`-annotated interface method, falling back to every method in
 the class if none is annotated that way.
 
+For "flag this specific static method call" rules (WG001/WG002/WG003 are all this shape),
+you almost never need a new `CallTarget` implementation at all:
+`io.wogu.temporal.callgraph.StaticMethodCallTarget` takes a qualified class name and
+method name and handles every way the call can be written (simple name + import,
+wildcard import, fully qualified inline, static import, and `java.lang` classes needing
+no import at all unless shadowed). A rule needing several such patterns under one rule id
+(like WG003's eight time APIs) just constructs several instances and passes them as a
+`List<CallTarget>`.
+
+`TemporalRuleSupport.findViolations(...)` is the other piece every call-graph-based rule
+reuses: the "for each workflow class, for each entry point, for each target, convert
+matches into `Violation`s (with relativized call-path frames)" loop. A rule's
+`evaluate()` should be a one-line call into it, not a hand-rolled copy of that loop — if
+you find yourself writing nested loops over `workflowClasses`/`entryPoints` in a new rule,
+you're duplicating this.
+
 # Adding a new rule
 
-1. Implement `TemporalRule` (or the equivalent for a different engine module).
-2. Reuse `WorkflowImplementationScanner` and `CallGraphAnalyzer` with your own
-   `CallTarget` — don't write a new scanner or a new traversal.
-3. Give it a `Rule` with the next free id in the right category's range.
-4. Register it by adding it to `TemporalWorkflowValidator`'s rule list (no new
+1. Implement `TemporalRule` (or the equivalent for a different engine module). If it's a
+   "flag this static method call" rule, its whole body is typically: a `Rule` constant, a
+   `StaticMethodCallTarget` (or a `List<CallTarget>` of them), message/suggested-fix
+   strings, and an `evaluate()` that calls `TemporalRuleSupport.findViolations(...)`.
+2. Give it a `Rule` with the next free id in the right category's range.
+3. Register it by adding it to `TemporalWorkflowValidator`'s rule list (no new
    `META-INF/services` entry needed unless it's a whole new validator implementation).
-5. Write tests using real temp-directory source files parsed through `SourceRootParser`
-   (see `TemporalWorkflowValidatorTest` / `WorkflowImplementationScannerTest` /
-   `CallGraphAnalyzerTest` for the pattern: `@TempDir`, write `.java` files as text
-   blocks, assert on the resulting `Violation`s/call paths). Don't mock JavaParser types.
-6. Write `docs/rules/WG0NN.md` following the `WG001.md` template (Problem, Why this
+4. Write tests using real temp-directory source files parsed through `SourceRootParser`
+   (see `TemporalWorkflowValidatorTest`, `ThreadSleepRuleTest`,
+   `NonDeterministicTimeApiRuleTest` for the pattern: `@TempDir`, write `.java` files as
+   text blocks, assert on the resulting `Violation`s/call paths — including at least one
+   "must NOT report inside an Activity" case, invoking the activity through its interface
+   type, not the impl class directly). Don't mock JavaParser types.
+5. Write `docs/rules/WG0NN.md` following the `WG001.md` template (Problem, Why this
    matters, Bad/Good Example, Recommended Fix, References, False Positives, Since
    Version).
-7. Nothing in `wogu-core` or `wogu-report` should need to change.
+6. Nothing in `wogu-core` or `wogu-report` should need to change.
 
 # Adding a new workflow engine module
 

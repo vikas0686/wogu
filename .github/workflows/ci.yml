@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build and verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build and test the core reactor (wogu-api .. wogu-maven-plugin)
+        run: mvn -B clean verify
+
+      - name: Install WoGu jars to the local Maven repository
+        run: mvn -B install -DskipTests
+        # Needed so wogu-gradle-plugin (and the samples' Gradle builds) can resolve
+        # io.wogu:* from mavenLocal(); see CONTRIBUTING.md.
+
+      - name: Build the Maven "clean" sample (expected to pass)
+        run: mvn -B -f sample-temporal-project/clean verify
+
+      - name: Verify the Maven "violation" sample fails as designed
+        run: |
+          if mvn -B -f sample-temporal-project/violation verify; then
+            echo "::error::sample-temporal-project/violation was expected to fail WoGu validation, but the build passed."
+            exit 1
+          fi
+          echo "sample-temporal-project/violation failed validation as expected."
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build wogu-gradle-plugin
+        working-directory: wogu-gradle-plugin
+        run: ./gradlew build --no-daemon
+
+      - name: Build the Gradle "clean" sample (expected to pass)
+        working-directory: sample-temporal-project/clean
+        run: ./gradlew build --no-daemon
+
+      - name: Verify the Gradle "violation" sample fails as designed
+        working-directory: sample-temporal-project/violation
+        run: |
+          if ./gradlew build --no-daemon; then
+            echo "::error::The Gradle violation sample was expected to fail WoGu validation, but the build passed."
+            exit 1
+          fi
+          echo "Gradle violation sample failed validation as expected."
+
+      - name: Upload WoGu HTML reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wogu-reports
+          path: |
+            sample-temporal-project/clean/target/wogu/index.html
+            sample-temporal-project/violation/target/wogu/index.html
+            sample-temporal-project/clean/build/reports/wogu/index.html
+            sample-temporal-project/violation/build/reports/wogu/index.html
+          if-no-files-found: warn

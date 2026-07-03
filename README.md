@@ -70,7 +70,7 @@ That's it — `mvn verify` now runs WoGu automatically, bound to the `verify` ph
 
 ```kotlin
 plugins {
-  id("io.wogu.wogu-gradle-plugin") version "0.1.0-SNAPSHOT"
+  id("io.wogu.wogu-gradle-plugin") version "0.1.0"
 }
 ```
 

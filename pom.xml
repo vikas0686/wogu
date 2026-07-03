@@ -90,6 +90,13 @@
     <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
     <maven-javadoc-plugin.version>3.10.1</maven-javadoc-plugin.version>
     <maven-install-plugin.version>3.1.3</maven-install-plugin.version>
+
+    <!-- Maven Central publishing, used only by the 'release' profile below. Check
+         https://central.sonatype.org/publish/publish-portal-maven/ and
+         https://search.maven.org/artifact/org.apache.maven.plugins/maven-gpg-plugin
+         for newer releases before bumping. -->
+    <maven-gpg-plugin.version>3.2.7</maven-gpg-plugin.version>
+    <central-publishing-maven-plugin.version>0.7.0</central-publishing-maven-plugin.version>
   </properties>
 
   <dependencyManagement>
@@ -289,6 +296,43 @@
           <artifactId>maven-plugin-plugin</artifactId>
           <version>${maven-plugin-plugin.version}</version>
         </plugin>
+        <plugin>
+          <!-- Signs every attached artifact (jar, sources jar, javadoc jar, pom) with the
+               local GPG key. No passphrase is configured here: gpg-agent handles it (an
+               interactive prompt, cached for the rest of the session) so nothing secret
+               ever needs to live in this repo or in Maven properties. Only ever invoked by
+               the 'release' profile, never during a plain build/test run. -->
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-gpg-plugin</artifactId>
+          <version>${maven-gpg-plugin.version}</version>
+          <executions>
+            <execution>
+              <id>sign-artifacts</id>
+              <phase>verify</phase>
+              <goals>
+                <goal>sign</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <!-- Current Sonatype-recommended publishing mechanism: uploads a signed deployment
+               bundle to the Central Publisher Portal API and (optionally) releases it,
+               replacing the legacy nexus-staging-maven-plugin/OSSRH staging-repository flow.
+               'publishingServerId' must match a <server> id in ~/.m2/settings.xml holding the
+               Sonatype User Token; see the settings.xml template in the release runbook.
+               autoPublish=false means 'mvn deploy -Prelease' uploads and validates but leaves
+               the deployment pending in the portal for a manual review-and-publish click —
+               the safest default until you've done this once. -->
+          <groupId>org.sonatype.central</groupId>
+          <artifactId>central-publishing-maven-plugin</artifactId>
+          <version>${central-publishing-maven-plugin.version}</version>
+          <extensions>true</extensions>
+          <configuration>
+            <publishingServerId>central</publishingServerId>
+            <autoPublish>false</autoPublish>
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
 
@@ -314,6 +358,41 @@
       <modules>
         <module>sample-temporal-project</module>
       </modules>
+    </profile>
+
+    <profile>
+      <!-- Everything needed for an actual Maven Central release, and nothing more: source
+           jars, javadoc jars, GPG signatures, and the Central Publishing upload. Kept out
+           of the default build (see the always-on <build><plugins> above, unchanged) so a
+           plain 'mvn clean verify' or 'mvn clean install' — what CI and every contributor
+           runs — never needs a local GPG key or Sonatype credentials. Activate explicitly:
+
+             mvn clean deploy -Prelease
+
+           See the release runbook (asked for alongside this profile) for the full
+           settings.xml template, validation steps, and what a successful run looks like. -->
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <extensions>true</extensions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 </project>

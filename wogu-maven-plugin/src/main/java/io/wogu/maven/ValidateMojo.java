@@ -1,8 +1,8 @@
 package io.wogu.maven;
 
 import io.wogu.api.ValidationContext;
-import io.wogu.api.ValidationResult;
 import io.wogu.api.ValidationSummary;
+import io.wogu.core.ConsoleReportRenderer;
 import io.wogu.core.DefaultValidationContext;
 import io.wogu.core.ValidatorExecutionException;
 import java.io.File;
@@ -20,12 +20,12 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 
 /**
- * Runs every registered WoGu {@code WorkflowValidator} against this project's source and
- * writes an HTML report.
+ * Runs every registered WoGu rule against this project's source and writes an HTML
+ * report.
  *
  * <p>Bound by default to the {@code verify} phase: adding this plugin to a POM is
  * sufficient for {@code mvn verify} to run WoGu automatically. The build fails when a
- * validator reports a violation whose severity blocks the build, unless
+ * rule reports a violation whose severity blocks the build, unless
  * {@code wogu.failOnViolation} is set to {@code false}.
  */
 @Mojo(
@@ -57,15 +57,7 @@ public final class ValidateMojo extends AbstractMojo {
       return;
     }
 
-    getLog().info("Running WoGu...");
-    getLog().info("");
-    getLog().info("Scanning workflows...");
-    getLog().info("");
-
     ValidationContext context = buildContext();
-
-    getLog().info("Executing validators...");
-    getLog().info("");
 
     WoguRunner.Result result;
     try {
@@ -77,30 +69,13 @@ public final class ValidateMojo extends AbstractMojo {
     }
 
     ValidationSummary summary = result.summary();
-    logResults(summary);
-    getLog().info("WoGu report written to " + result.reportPath());
-    getLog().info("");
-
-    if (summary.hasBuildFailures()) {
-      getLog().error("Build failed.");
-      if (failOnViolation) {
-        throw new MojoFailureException(
-            "WoGu found " + summary.allViolations().size() + " violation(s). See " + result.reportPath());
-      }
+    for (String line : ConsoleReportRenderer.render(summary, result.reportPath())) {
+      getLog().info(line);
     }
-  }
 
-  private void logResults(ValidationSummary summary) {
-    for (ValidationResult validatorResult : summary.results()) {
-      getLog().info(validatorResult.validatorId());
-      getLog().info("");
-      getLog().info(validatorResult.passed() ? "PASSED" : "FAILED");
-      getLog().info("");
-      if (!validatorResult.violations().isEmpty()) {
-        int count = validatorResult.violations().size();
-        getLog().info(count + (count == 1 ? " violation found" : " violations found"));
-        getLog().info("");
-      }
+    if (summary.hasBuildFailures() && failOnViolation) {
+      throw new MojoFailureException(
+          "WoGu found " + summary.allViolations().size() + " violation(s). See " + result.reportPath());
     }
   }
 
@@ -121,6 +96,7 @@ public final class ValidateMojo extends AbstractMojo {
         .projectDirectory(project.getBasedir().toPath())
         .sourceRoots(sourceRoots)
         .classpathElements(classpathElements)
+        .buildTool("Maven")
         .build();
   }
 }

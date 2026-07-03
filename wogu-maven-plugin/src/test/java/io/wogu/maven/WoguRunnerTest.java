@@ -29,6 +29,7 @@ class WoguRunnerTest {
         .projectName("sample-project")
         .projectDirectory(sourceRoot)
         .sourceRoots(List.of(sourceRoot))
+        .buildTool("Maven")
         .build();
   }
 

@@ -81,7 +81,7 @@ class WoguPluginFunctionalTest {
     BuildResult result = runner("woguValidate").build();
 
     assertThat(result.task(":woguValidate").getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
-    assertThat(result.getOutput()).contains("Running WoGu...").contains("PASSED");
+    assertThat(result.getOutput()).contains("WoGu Workflow Guard").contains("✓ WG001").contains("Build PASSED");
     assertThat(projectDir.resolve("build/reports/wogu/index.html")).exists();
   }
 
@@ -118,7 +118,7 @@ class WoguPluginFunctionalTest {
     BuildResult result = runner("woguValidate").buildAndFail();
 
     assertThat(result.task(":woguValidate").getOutcome()).isEqualTo(TaskOutcome.FAILED);
-    assertThat(result.getOutput()).contains("FAILED").contains("1 violation found").contains("Build failed.");
+    assertThat(result.getOutput()).contains("✗ WG001").contains("1 ERROR").contains("Build FAILED");
     Path report = projectDir.resolve("build/reports/wogu/index.html");
     assertThat(report).exists();
     assertThat(Files.readString(report)).contains("PaymentWorkflowImpl");

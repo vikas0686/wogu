@@ -1,8 +1,8 @@
 package io.wogu.gradle;
 
 import io.wogu.api.ValidationContext;
-import io.wogu.api.ValidationResult;
 import io.wogu.api.ValidationSummary;
+import io.wogu.core.ConsoleReportRenderer;
 import io.wogu.core.DefaultValidationContext;
 import io.wogu.core.ValidationEngine;
 import io.wogu.report.HtmlReportGenerator;
@@ -26,9 +26,9 @@ import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.TaskAction;
 
 /**
- * Gradle task backing the {@code woguValidate} task: runs every discoverable WoGu
- * {@code WorkflowValidator} against the project's main source set and writes an HTML
- * report, failing the build on a build-blocking violation.
+ * Gradle task backing the {@code woguValidate} task: runs every discoverable WoGu rule
+ * against the project's main source set and writes an HTML report, failing the build on a
+ * build-blocking violation.
  *
  * <p>{@link WoguPlugin} registers and wires this task; it is not intended to be created
  * directly.
@@ -64,16 +64,7 @@ public abstract class WoguValidateTask extends DefaultTask {
       return;
     }
 
-    getLogger().lifecycle("Running WoGu...");
-    getLogger().lifecycle("");
-    getLogger().lifecycle("Scanning workflows...");
-    getLogger().lifecycle("");
-
     ValidationContext context = buildContext();
-
-    getLogger().lifecycle("Executing validators...");
-    getLogger().lifecycle("");
-
     ValidationEngine engine = ValidationEngine.discover(getClass().getClassLoader());
     ValidationSummary summary = engine.run(context);
 
@@ -84,30 +75,12 @@ public abstract class WoguValidateTask extends DefaultTask {
       throw new UncheckedIOException("Failed to write the WoGu HTML report", e);
     }
 
-    logResults(summary);
-    getLogger().lifecycle("WoGu report written to " + reportPath);
-    getLogger().lifecycle("");
-
-    if (summary.hasBuildFailures()) {
-      getLogger().error("Build failed.");
-      if (Boolean.TRUE.equals(getFailOnViolation().getOrElse(true))) {
-        throw new GradleException(
-            "WoGu found " + summary.allViolations().size() + " violation(s). See " + reportPath);
-      }
+    for (String line : ConsoleReportRenderer.render(summary, reportPath)) {
+      getLogger().lifecycle(line);
     }
-  }
 
-  private void logResults(ValidationSummary summary) {
-    for (ValidationResult result : summary.results()) {
-      getLogger().lifecycle(result.validatorId());
-      getLogger().lifecycle("");
-      getLogger().lifecycle(result.passed() ? "PASSED" : "FAILED");
-      getLogger().lifecycle("");
-      if (!result.violations().isEmpty()) {
-        int count = result.violations().size();
-        getLogger().lifecycle(count + (count == 1 ? " violation found" : " violations found"));
-        getLogger().lifecycle("");
-      }
+    if (summary.hasBuildFailures() && Boolean.TRUE.equals(getFailOnViolation().getOrElse(true))) {
+      throw new GradleException("WoGu found " + summary.allViolations().size() + " violation(s). See " + reportPath);
     }
   }
 
@@ -120,6 +93,7 @@ public abstract class WoguValidateTask extends DefaultTask {
         .projectDirectory(getProjectDirectory().get().getAsFile().toPath())
         .sourceRoots(sourceRoots)
         .classpathElements(classpathElements)
+        .buildTool("Gradle")
         .build();
   }
 }

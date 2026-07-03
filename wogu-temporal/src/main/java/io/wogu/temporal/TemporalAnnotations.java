@@ -2,8 +2,8 @@ package io.wogu.temporal;
 
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
-import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.github.javaparser.ast.nodeTypes.NodeWithAnnotations;
 
 /**
  * Recognizes Temporal SDK annotations on parsed source without requiring the Temporal SDK
@@ -22,12 +22,13 @@ final class TemporalAnnotations {
   private TemporalAnnotations() {}
 
   /**
-   * Whether {@code type} carries an annotation that unambiguously resolves to
-   * {@code qualifiedName} given the imports in {@code unit}.
+   * Whether {@code node} (a type, method, or other annotatable declaration) carries an
+   * annotation that unambiguously resolves to {@code qualifiedName} given the imports in
+   * {@code unit}.
    */
-  static boolean isAnnotatedWith(TypeDeclaration<?> type, CompilationUnit unit, String qualifiedName) {
+  static boolean isAnnotatedWith(NodeWithAnnotations<?> node, CompilationUnit unit, String qualifiedName) {
     String simpleName = qualifiedName.substring(qualifiedName.lastIndexOf('.') + 1);
-    for (AnnotationExpr annotation : type.getAnnotations()) {
+    for (AnnotationExpr annotation : node.getAnnotations()) {
       String written = annotation.getNameAsString();
       if (written.equals(qualifiedName)) {
         return true;

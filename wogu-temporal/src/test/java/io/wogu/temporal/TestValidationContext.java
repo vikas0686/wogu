@@ -15,4 +15,9 @@ record TestValidationContext(String projectName, Path projectDirectory, List<Pat
   public List<Path> classpathElements() {
     return List.of();
   }
+
+  @Override
+  public String buildTool() {
+    return "Test";
+  }
 }

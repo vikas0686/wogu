@@ -129,13 +129,13 @@
         <version>${temporal-sdk.version}</version>
       </dependency>
 
-      <!-- Source parsing (JavaParser). Only javaparser-core is needed: WoGu's Temporal
-           validators use import- and annotation-based heuristics rather than full
-           classpath symbol resolution, so the heavier symbol-solver artifact is not
-           required. -->
+      <!-- Source parsing (JavaParser). The symbol-solver artifact (which includes
+           javaparser-core transitively) is needed for the call graph engine to resolve
+           method calls like 'orderService.createOrder()' across classes within the
+           project's own source. -->
       <dependency>
         <groupId>com.github.javaparser</groupId>
-        <artifactId>javaparser-core</artifactId>
+        <artifactId>javaparser-symbol-solver-core</artifactId>
         <version>${javaparser.version}</version>
       </dependency>
 

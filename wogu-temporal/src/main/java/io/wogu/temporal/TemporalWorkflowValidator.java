@@ -24,7 +24,8 @@ import java.util.List;
  */
 public final class TemporalWorkflowValidator implements WorkflowValidator {
 
-  private static final List<TemporalRule> RULES = List.of(new UuidRandomUuidRule());
+  private static final List<TemporalRule> RULES =
+      List.of(new UuidRandomUuidRule(), new ThreadSleepRule(), new NonDeterministicTimeApiRule());
 
   private final WorkflowImplementationScanner scanner = new WorkflowImplementationScanner();
 

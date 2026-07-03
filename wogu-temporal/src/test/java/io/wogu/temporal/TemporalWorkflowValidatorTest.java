@@ -33,16 +33,16 @@ class TemporalWorkflowValidatorTest {
   }
 
   @Test
-  void declaresWG001AsOneOfItsRules() {
-    assertThat(validator.rules()).extracting(Rule::id).containsExactly("WG001");
+  void declaresWG001WG002AndWG003AsItsRules() {
+    assertThat(validator.rules()).extracting(Rule::id).containsExactly("WG001", "WG002", "WG003");
   }
 
   @Test
-  void wg001IdFallsWithinItsDeterminismCategorysReservedNumericRange() {
-    Rule wg001 = validator.rules().get(0);
-
-    assertThat(wg001.category()).isEqualTo(RuleCategory.DETERMINISM);
-    assertThat(wg001.category().containsRuleId(wg001.id())).isTrue();
+  void everyDeclaredRuleIdFallsWithinItsCategorysReservedNumericRange() {
+    for (Rule rule : validator.rules()) {
+      assertThat(rule.category()).isEqualTo(RuleCategory.DETERMINISM);
+      assertThat(rule.category().containsRuleId(rule.id())).isTrue();
+    }
   }
 
   @Test
@@ -218,7 +218,9 @@ class TemporalWorkflowValidatorTest {
   }
 
   private static RuleResult onlyResult(ValidatorRunOutcome outcome) {
-    assertThat(outcome.ruleResults()).hasSize(1);
-    return outcome.ruleResults().get(0);
+    return outcome.ruleResults().stream()
+        .filter(result -> result.rule().id().equals(UuidRandomUuidRule.ID))
+        .findFirst()
+        .orElseThrow();
   }
 }

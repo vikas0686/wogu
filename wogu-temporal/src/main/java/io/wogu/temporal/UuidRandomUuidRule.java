@@ -1,17 +1,13 @@
 package io.wogu.temporal;
 
-import com.github.javaparser.ast.body.MethodDeclaration;
-import io.wogu.api.CallPathFrame;
 import io.wogu.api.Rule;
 import io.wogu.api.RuleCategory;
 import io.wogu.api.Severity;
 import io.wogu.api.ValidationContext;
 import io.wogu.api.Violation;
 import io.wogu.temporal.callgraph.CallGraphAnalyzer;
-import io.wogu.temporal.callgraph.CallGraphMatch;
 import io.wogu.temporal.callgraph.CallTarget;
-import java.nio.file.Path;
-import java.util.ArrayList;
+import io.wogu.temporal.callgraph.StaticMethodCallTarget;
 import java.util.List;
 
 /**
@@ -52,7 +48,7 @@ final class UuidRandomUuidRule implements TemporalRule {
           + "generator seeded from workflow history, so it produces the same value on every "
           + "replay.";
 
-  private final CallTarget target = new UuidRandomUuidCallTarget();
+  private final CallTarget target = new StaticMethodCallTarget("java.util.UUID", "randomUUID");
 
   @Override
   public Rule metadata() {
@@ -62,45 +58,6 @@ final class UuidRandomUuidRule implements TemporalRule {
   @Override
   public List<Violation> evaluate(
       ValidationContext context, List<ScannedWorkflowClass> workflowClasses, CallGraphAnalyzer callGraph) {
-    List<Violation> violations = new ArrayList<>();
-    for (ScannedWorkflowClass workflowClass : workflowClasses) {
-      for (MethodDeclaration entryPoint : workflowClass.entryPoints()) {
-        for (CallGraphMatch match : callGraph.findCallPaths(entryPoint, target)) {
-          violations.add(toViolation(context, match));
-        }
-      }
-    }
-    return violations;
-  }
-
-  private static Violation toViolation(ValidationContext context, CallGraphMatch match) {
-    Path projectDirectory = context.projectDirectory();
-    List<CallPathFrame> relativizedPath =
-        match.path().stream()
-            .map(frame -> new CallPathFrame(frame.displayName(), relativize(projectDirectory, frame.file()), frame.line()))
-            .toList();
-
-    return Violation.builder()
-        .rule(METADATA)
-        .file(relativize(projectDirectory, match.file()))
-        .className(match.containingClassName())
-        .line(match.line())
-        .message(MESSAGE)
-        .suggestedFix(SUGGESTED_FIX)
-        .callPath(relativizedPath)
-        .build();
-  }
-
-  /**
-   * Renders {@code file} relative to {@code projectDirectory} for readability in reports,
-   * falling back to the original path if the two are not comparable (e.g. different
-   * filesystem roots).
-   */
-  private static Path relativize(Path projectDirectory, Path file) {
-    try {
-      return projectDirectory.toAbsolutePath().normalize().relativize(file.toAbsolutePath().normalize());
-    } catch (IllegalArgumentException e) {
-      return file;
-    }
+    return TemporalRuleSupport.findViolations(workflowClasses, callGraph, target, METADATA, context, MESSAGE, SUGGESTED_FIX);
   }
 }

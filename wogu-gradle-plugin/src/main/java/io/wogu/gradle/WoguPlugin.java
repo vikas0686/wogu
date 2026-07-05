@@ -15,7 +15,7 @@ import org.gradle.api.tasks.TaskProvider;
  *
  * <pre>{@code
  * plugins {
- *   id("io.wogu.wogu-gradle-plugin") version "0.1.0"
+ *   id("io.github.vikas0686.wogu") version "0.1.0"
  * }
  * }</pre>
  */

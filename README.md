@@ -87,7 +87,7 @@ extra repository configuration is needed; it resolves straight from Maven Centra
 
 ```kotlin
 plugins {
-  id("io.wogu.wogu-gradle-plugin") version "0.1.0"
+  id("io.github.vikas0686.wogu") version "0.1.0"
 }
 ```
 

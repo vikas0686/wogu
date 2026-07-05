@@ -24,6 +24,7 @@ import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.TaskAction;
+import org.gradle.work.DisableCachingByDefault;
 
 /**
  * Gradle task backing the {@code woguValidate} task: runs every discoverable WoGu rule
@@ -33,6 +34,9 @@ import org.gradle.api.tasks.TaskAction;
  * <p>{@link WoguPlugin} registers and wires this task; it is not intended to be created
  * directly.
  */
+@DisableCachingByDefault(
+    because = "A build-quality gate should always run freshly; reusing a cached result "
+        + "could hide a violation reintroduced since the last cached run.")
 public abstract class WoguValidateTask extends DefaultTask {
 
   @InputFiles

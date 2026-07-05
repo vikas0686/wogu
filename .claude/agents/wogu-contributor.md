@@ -251,9 +251,14 @@ placeholders — every module's `pom.xml`, the root `pom.xml`'s `<url>`/`<scm>`/
 new Maven module or a new rule doc, use these same coordinates; don't reintroduce the
 old `io.wogu` / `github.com/wogu-project/wogu` placeholders from the initial scaffold.
 
-Note the Gradle plugin (`wogu-gradle-plugin`) intentionally keeps its own identity
-separate: its Gradle plugin id (`io.wogu.wogu-gradle-plugin`) and its own
-`group`/`version` in `build.gradle.kts` are a different namespace from the Maven
+The Gradle plugin (`wogu-gradle-plugin`) is a separate Gradle build with its own
+identity: its Gradle plugin id is `io.github.vikas0686.wogu` (the `io.github.*` form the
+Gradle Plugin Portal requires to verify ownership, same reasoning as the Maven
+`io.github.vikas0686` groupId), configured in `build.gradle.kts`'s `gradlePlugin { plugins
+{ create("wogu") { id = ... } } }` block — every place that applies the plugin (the
+functional tests, `WoguPlugin`'s javadoc example, `README.md`'s Gradle snippet) must use
+this exact id, or Gradle TestKit/consumers fail to find the plugin at all. Its own
+`group`/`version` in `build.gradle.kts` remain a different namespace from the Maven
 artifacts it depends on — only its `dependencies { implementation(...) }` coordinates
 and `woguVersion` need to track the Maven `groupId`/version above, since those resolve
 real jars from `mavenLocal()`.

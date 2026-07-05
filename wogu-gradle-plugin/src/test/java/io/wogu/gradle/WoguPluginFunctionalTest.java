@@ -33,7 +33,7 @@ class WoguPluginFunctionalTest {
         """
         plugins {
           java
-          id("io.wogu.wogu-gradle-plugin")
+          id("io.github.vikas0686.wogu")
         }
         """);
   }
@@ -137,7 +137,7 @@ class WoguPluginFunctionalTest {
         """
         plugins {
           java
-          id("io.wogu.wogu-gradle-plugin")
+          id("io.github.vikas0686.wogu")
         }
 
         repositories {
@@ -189,7 +189,7 @@ class WoguPluginFunctionalTest {
         """
         plugins {
           java
-          id("io.wogu.wogu-gradle-plugin")
+          id("io.github.vikas0686.wogu")
         }
 
         wogu {

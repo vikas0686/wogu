@@ -7,7 +7,7 @@
   <parent>
     <groupId>io.github.vikas0686</groupId>
     <artifactId>wogu-parent</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
   </parent>
 
   <artifactId>wogu-core</artifactId>

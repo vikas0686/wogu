@@ -1,5 +1,6 @@
 plugins {
     `java-gradle-plugin`
+    id("com.gradle.plugin-publish") version "1.3.1"
 }
 
 group = "io.wogu"
@@ -35,15 +36,29 @@ dependencies {
 }
 
 gradlePlugin {
+
+    website = "https://github.com/vikas0686/wogu"
+    vcsUrl = "https://github.com/vikas0686/wogu"
+
     plugins {
         create("wogu") {
-            id = "io.wogu.wogu-gradle-plugin"
+            id = "io.github.vikas0686.wogu"
             implementationClass = "io.wogu.gradle.WoguPlugin"
+
             displayName = "WoGu Workflow Guard"
-            description = "Static analysis and build validation for workflow-based applications (Temporal Java SDK)."
+            description = "Static analysis and workflow quality gates."
+
+            tags.set(listOf(
+                "temporal",
+                "workflow",
+                "static-analysis",
+                "quality",
+                "java"
+            ))
         }
     }
 }
+
 
 tasks.test {
     useJUnitPlatform()

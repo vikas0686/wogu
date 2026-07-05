@@ -3,8 +3,8 @@ plugins {
     id("com.gradle.plugin-publish") version "1.3.1"
 }
 
-group = "io.wogu"
-version = "0.1.0"
+group = "io.github.vikas0686"
+version =  "0.1.1"
 
 java {
     toolchain {
@@ -13,14 +13,10 @@ java {
 }
 
 repositories {
-    // WoGu's engine, api, temporal, and report modules are Maven-built and only
-    // available in the local Maven repository until they are published; the plugin
-    // consumes them from there.
-    mavenLocal()
     mavenCentral()
 }
 
-val woguVersion = "0.1.0"
+val woguVersion = version.toString()
 
 dependencies {
     implementation("io.github.vikas0686:wogu-api:$woguVersion")

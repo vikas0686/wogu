@@ -1,90 +1,27 @@
 # WoGu — Workflow Guard
 
-**Static analysis and build validation for workflow-based applications.**
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.vikas0686/wogu-maven-plugin.svg)](https://search.maven.org/artifact/io.github.vikas0686/wogu-maven-plugin)
+[![GitHub release](https://img.shields.io/github/v/release/vikas0686/wogu?include_prereleases)](https://github.com/vikas0686/wogu/releases)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Java 17+](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://openjdk.org/projects/jdk/17/)
+[![CI](https://github.com/vikas0686/wogu/actions/workflows/ci.yml/badge.svg)](https://github.com/vikas0686/wogu/actions/workflows/ci.yml)
+
+**Detect workflow determinism issues and workflow best-practice violations at build
+time — before they reach production.**
 
 WoGu plugs into your build (`mvn verify` or `gradle build`) and fails it when your
 workflow code violates a workflow-quality rule — the same way JaCoCo made coverage a
 build-time concern instead of a manual check, and SpotBugs made bug-pattern detection
-part of the build, WoGu aims to do that for workflow correctness.
+part of the build. WoGu does that for workflow correctness. Temporal is the first
+supported workflow engine, but the architecture is built so that other engines
+(Conductor, Camunda, Airflow, ...) and dozens more rules can be added without ever
+touching the core engine — see [Architecture](#architecture) and
+[Adding a Rule](#adding-a-rule).
 
-WoGu is **not** a Temporal-only tool. Temporal is the first supported workflow engine; the
-architecture is built so that entirely different engines (Conductor, Camunda, Airflow,
-...) and dozens more rules can be added without ever touching the core engine. See
-[Architecture](#architecture) and [Adding a rule](#adding-a-rule) below.
+## Quick Demo
 
-## Why
-
-Temporal (and workflow engines like it) replay workflow code from history to reconstruct
-state. Anything non-deterministic in that code — a random number, the wall clock, thread
-scheduling — can produce a different result on replay than it did originally, diverging
-execution from recorded history. These bugs are easy to write and easy to miss in review;
-they belong in the build, caught automatically, every time.
-
-## What's implemented
-
-Ten Determinism rules for the Temporal Java SDK, all reachable-from-a-workflow-entry-
-point checks built on the same [call-graph analysis engine](#call-graph-analysis) — not
-just direct usage inside the workflow implementation class, but calls (and
-constructions) several methods away, and never a false positive from code inside an
-Activity implementation (see [Call graph analysis](#call-graph-analysis)):
-
-| Rule | Flags | Fix |
-|---|---|---|
-| [WG001](docs/rules/WG001.md) | `UUID.randomUUID()` | `Workflow.randomUUID()` |
-| [WG002](docs/rules/WG002.md) | `Thread.sleep(...)` | `Workflow.sleep(Duration)` |
-| [WG003](docs/rules/WG003.md) | `System.currentTimeMillis()`, `Instant.now()`, `LocalDate.now()`, `LocalDateTime.now()`, `OffsetDateTime.now()`, `ZonedDateTime.now()`, `Clock.systemUTC()`, `Clock.systemDefaultZone()` | `Workflow.currentTimeMillis()` |
-| [WG004](docs/rules/WG004.md) | `Math.random()` | `Workflow.newRandom()` |
-| [WG005](docs/rules/WG005.md) | `new Random()`, `Random.nextInt()/nextLong()/nextDouble()/nextBoolean()` | `Workflow.newRandom()` |
-| [WG006](docs/rules/WG006.md) | `ThreadLocalRandom.current()` | `Workflow.newRandom()` |
-| [WG007](docs/rules/WG007.md) | `new SecureRandom()`, `SecureRandom.nextBytes()/nextInt()` | `Workflow.newRandom()` (or an Activity, for genuine cryptographic randomness) |
-| [WG008](docs/rules/WG008.md) | `System.getenv()` | Read config outside the workflow or via an Activity |
-| [WG009](docs/rules/WG009.md) | `System.getProperty(...)` | Read config outside the workflow or via an Activity |
-| [WG010](docs/rules/WG010.md) | `Executors.new*ThreadPool/Executor()`, `new Thread(...)`, `CompletableFuture.supplyAsync(...)`, `ForkJoinPool.commonPool()` | Temporal `Async` APIs |
-
-Each is a self-contained addition to `TemporalWorkflowValidator`'s rule list — none of
-them required a change to `wogu-core`, `wogu-report`, or either build-tool plugin (see
-[Adding a rule](#adding-a-rule)).
-
-## Quick start
-
-### Maven
-
-```xml
-<plugin>
-  <groupId>io.github.vikas0686</groupId>
-  <artifactId>wogu-maven-plugin</artifactId>
-  <version>0.1.0</version>
-  <executions>
-    <execution>
-      <goals>
-        <goal>validate</goal>
-      </goals>
-    </execution>
-  </executions>
-</plugin>
-```
-
-That's it — `mvn verify` now runs WoGu automatically, bound to the `verify` phase.
-
-### Gradle
-
-```kotlin
-plugins {
-  id("io.wogu.wogu-gradle-plugin") version "0.1.0"
-}
-```
-
-Applying the plugin registers `woguValidate` and, once the `java` plugin is present,
-wires it into `build`.
-
-> These artifacts aren't published to Maven Central yet (see
-> [sample-temporal-project](sample-temporal-project) and [CONTRIBUTING.md](CONTRIBUTING.md)
-> for how the sample in this repo consumes them locally in the meantime).
-
-## What it looks like
-
-Console output on a build with violations of all three rules, each reached through one
-intermediate method call:
+See WoGu catch a real violation in under 30 seconds. Console output on a build with
+violations of three rules, each reached through one intermediate method call:
 
 ```
 ----------------------------------------------------
@@ -114,7 +51,7 @@ with no report-generator changes, since it reads purely from `Rule` metadata:
 
 ![WoGu report showing a failed build with all three Determinism rules failing, each with its own violation card showing the call path from the workflow entry point down to the offending call](docs/images/report-failed.png)
 
-You can reproduce this directly from this repo — see
+Reproduce this directly from this repo — see
 [sample-temporal-project](sample-temporal-project), whose workflow method calls into a
 service class that violates all three rules:
 
@@ -122,7 +59,107 @@ service class that violates all three rules:
 mvn -f sample-temporal-project verify   # fails by design, writes the report above
 ```
 
-## Call graph analysis
+## Installation
+
+WoGu is published on Maven Central under `io.github.vikas0686`.
+
+### Maven
+
+```xml
+<plugin>
+  <groupId>io.github.vikas0686</groupId>
+  <artifactId>wogu-maven-plugin</artifactId>
+  <version>0.1.0</version>
+  <executions>
+    <execution>
+      <goals>
+        <goal>validate</goal>
+      </goals>
+    </execution>
+  </executions>
+</plugin>
+```
+
+That's it — `mvn verify` now runs WoGu automatically, bound to the `verify` phase. No
+extra repository configuration is needed; it resolves straight from Maven Central.
+
+### Gradle
+
+```kotlin
+plugins {
+  id("io.wogu.wogu-gradle-plugin") version "0.1.0"
+}
+```
+
+Applying the plugin registers `woguValidate` and, once the `java` plugin is present,
+wires it into `build`.
+
+> The Gradle plugin isn't published to the Gradle Plugin Portal yet — see
+> [CONTRIBUTING.md](CONTRIBUTING.md) for how to build and consume it locally from
+> `mavenLocal()` in the meantime. The Maven plugin above is fully published and needs no
+> local setup.
+
+## Quick Start
+
+1. Add the plugin — see [Installation](#installation) above.
+2. Run:
+   ```bash
+   mvn verify
+   ```
+3. Open the report:
+   ```
+   target/wogu/index.html
+   ```
+
+Done — no configuration required for the default rule set.
+
+## Example
+
+```java
+// Inside a workflow implementation
+UUID.randomUUID();
+```
+
+↓ `mvn verify` fails
+↓ HTML report shows the violation and its full call path
+↓ Recommended fix: `Workflow.randomUUID()`
+
+See [Supported Rules](#supported-rules) below for everything WoGu checks for today.
+
+## Supported Rules
+
+Ten Determinism rules for the Temporal Java SDK, all reachable-from-a-workflow-entry-
+point checks built on the same [Call Graph Analysis](#call-graph-analysis) engine — not
+just direct usage inside the workflow implementation class, but calls (and
+constructions) several methods away, and never a false positive from code inside an
+Activity implementation:
+
+| Rule | Flags | Fix |
+|---|---|---|
+| [WG001](docs/rules/WG001.md) | `UUID.randomUUID()` | `Workflow.randomUUID()` |
+| [WG002](docs/rules/WG002.md) | `Thread.sleep(...)` | `Workflow.sleep(Duration)` |
+| [WG003](docs/rules/WG003.md) | `System.currentTimeMillis()`, `Instant.now()`, `LocalDate.now()`, `LocalDateTime.now()`, `OffsetDateTime.now()`, `ZonedDateTime.now()`, `Clock.systemUTC()`, `Clock.systemDefaultZone()` | `Workflow.currentTimeMillis()` |
+| [WG004](docs/rules/WG004.md) | `Math.random()` | `Workflow.newRandom()` |
+| [WG005](docs/rules/WG005.md) | `new Random()`, `Random.nextInt()/nextLong()/nextDouble()/nextBoolean()` | `Workflow.newRandom()` |
+| [WG006](docs/rules/WG006.md) | `ThreadLocalRandom.current()` | `Workflow.newRandom()` |
+| [WG007](docs/rules/WG007.md) | `new SecureRandom()`, `SecureRandom.nextBytes()/nextInt()` | `Workflow.newRandom()` (or an Activity, for genuine cryptographic randomness) |
+| [WG008](docs/rules/WG008.md) | `System.getenv()` | Read config outside the workflow or via an Activity |
+| [WG009](docs/rules/WG009.md) | `System.getProperty(...)` | Read config outside the workflow or via an Activity |
+| [WG010](docs/rules/WG010.md) | `Executors.new*ThreadPool/Executor()`, `new Thread(...)`, `CompletableFuture.supplyAsync(...)`, `ForkJoinPool.commonPool()` | Temporal `Async` APIs |
+
+Each is a self-contained addition to `TemporalWorkflowValidator`'s rule list — none of
+them required a change to `wogu-core`, `wogu-report`, or either build-tool plugin (see
+[Adding a Rule](#adding-a-rule)).
+
+## Why WoGu?
+
+Temporal (and workflow engines like it) replay workflow code from history to reconstruct
+state. Anything non-deterministic in that code — a random number, the wall clock, thread
+scheduling — can produce a different result on replay than it did originally, diverging
+execution from recorded history. These bugs are easy to write and easy to miss in review;
+they belong in the build, caught automatically, every time.
+
+## Call Graph Analysis
 
 The naive version of WG001 would only catch `UUID.randomUUID()` written directly inside a
 workflow implementation class. Real workflow code delegates to helper classes and
@@ -224,7 +261,7 @@ wogu-maven-plugin / wogu-gradle-plugin
         └──> wogu-temporal ──> wogu-api      (future: wogu-conductor, wogu-camunda, ...)
 ```
 
-## Rules, not validators
+## Rules, Not Validators
 
 A single `WorkflowValidator` implementation commonly evaluates several rules in one pass
 — sharing one parse of the source, one workflow scan, one call graph — because most of
@@ -237,7 +274,7 @@ Organization Policies) reserves a fixed numeric range — enforced by `Rule`'s c
 not just documented (see [CONTRIBUTING.md](CONTRIBUTING.md#rule-numbering) for the exact
 ranges).
 
-## Adding a rule
+## Adding a Rule
 
 Most rules need no Java at all. WG001–WG010 are all "flag this method call or
 constructor" rules, so each is a small YAML file under
@@ -280,7 +317,7 @@ the exception: it extends the `CustomRule` base class and is registered in
 [CONTRIBUTING.md](CONTRIBUTING.md) for the full walkthrough of both paths, including how
 to add support for an entirely new workflow engine.
 
-## Building from source
+## Building from Source
 
 ```bash
 mvn clean verify
@@ -296,23 +333,34 @@ Java 17+, Maven 3.9+ or Gradle 8+, Temporal Java SDK (any reasonably recent vers
 ten rules' detection is source-based and has no compile-time dependency on the SDK
 itself; see [VERSIONING.md](VERSIONING.md)).
 
-## Project status
+## Project Status
 
 Ten rules, one workflow engine, and a reusable call-graph analysis engine behind all of
-them. All ten are declarative YAML definitions executed by one generic
-`ForbiddenMethodRule` — none of them are hand-written Java classes — without touching
-`wogu-core`, `wogu-report`, or either build-tool plugin. The one generic rule type
-already matches method calls (syntactically, or by resolution when the class name isn't
-written at the call site) and constructors, and every rule's traversal stops at an
-Activity implementation boundary, so this same declarative shape is expected to cover
-most future rules too, not just this batch. The architecture — SPI-based validator
+them, published to Maven Central. All ten rules are declarative YAML definitions executed
+by one generic `ForbiddenMethodRule` — none of them are hand-written Java classes —
+without touching `wogu-core`, `wogu-report`, or either build-tool plugin. The one generic
+rule type already matches method calls (syntactically, or by resolution when the class
+name isn't written at the call site) and constructors, and every rule's traversal stops
+at an Activity implementation boundary, so this same declarative shape is expected to
+cover most future rules too, not just this batch. The architecture — SPI-based validator
 discovery, rules as first-class metadata independent of validator implementation, an
 engine agnostic to any specific rule, a report renderer agnostic to any specific engine —
-is designed to comfortably scale to 100+ rules and multiple workflow engines the same
-way, with Java required only for the minority of rules that need real analysis logic
-beyond a method-call/constructor pattern (see `CustomRule`). Configuration
-(enabling/disabling specific rules, ignoring specific classes) is not implemented yet, but
-every rule already has a stable, unique id to key that off of when it is.
+is designed to comfortably scale to 100+ rules and multiple workflow engines, with Java
+required only for the minority of rules that need real analysis logic beyond a
+method-call/constructor pattern (see `CustomRule`). Configuration (enabling/disabling
+specific rules, ignoring specific classes) is not implemented yet, but every rule already
+has a stable, unique id to key that off of when it is.
+
+## Roadmap
+
+- **v0.1** ✅ Temporal Determinism Rules (WG001–WG010) — shipped, published to Maven Central
+- **v0.2** ⬜ Activity Rules
+- **v0.3** ⬜ Versioning Rules
+- **v0.4** ⬜ Performance Rules
+- **v1.0** ⬜ 50+ Rules across Determinism, Activities, Versioning, Signals, Updates, Performance, Best Practices, Security, and Organization Policies
+
+No dates are committed yet — see [Project Status](#project-status) above for where
+things stand today.
 
 ## Contributing
 

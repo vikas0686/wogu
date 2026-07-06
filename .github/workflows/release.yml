@@ -120,6 +120,16 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+          cache: maven
+
+      - name: Install WoGu jars to the local Maven repository
+        # This job runs on its own fresh runner (in parallel with publish-maven-central),
+        # so mavenLocal() starts empty here, and the version being released is at best a
+        # *pending* Central deployment (autoPublish=false) — not yet resolvable from
+        # mavenCentral() either. Build and install the reactor locally so
+        # wogu-gradle-plugin's own dependency resolution (see its build.gradle.kts) has
+        # something to find.
+        run: mvn -B install -DskipTests
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4

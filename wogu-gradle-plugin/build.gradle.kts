@@ -25,6 +25,13 @@ java {
 }
 
 repositories {
+    // The io.github.vikas0686:* artifacts this build depends on (below) are resolved from
+    // the local Maven repository first: CI and CONTRIBUTING.md's build steps run
+    // 'mvn install' right before this build, and a not-yet-released version (e.g. while
+    // preparing a release, or any commit between releases) only ever exists there, never
+    // on Maven Central. mavenCentral() remains for every other, actually-published
+    // dependency (JUnit, AssertJ, etc.) and as a fallback once a version is released.
+    mavenLocal()
     mavenCentral()
 }
 

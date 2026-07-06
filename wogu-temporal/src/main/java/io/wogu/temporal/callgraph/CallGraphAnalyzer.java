@@ -43,6 +43,15 @@ import java.util.function.Predicate;
  * occasionally missing a violation behind an unresolvable call; see {@code CallTarget}
  * implementations for how a direct match still gets reported even when nothing beyond it
  * can be explored further.
+ *
+ * <p>Separately, traversal also tracks the current {@link ExecutionContext}: a caller
+ * supplies a list of {@link ContextEntryPoint}s (e.g. "a call matching
+ * {@code Workflow.sideEffect(...)} puts its callback into {@code SIDE_EFFECT}"), and every
+ * match reachable from such a callback — however many further method calls deep — carries
+ * that context, until traversal returns out of it. The engine itself has no idea what
+ * {@code sideEffect} means; it just applies whatever {@link ContextEntryPoint}s it was
+ * given, the same way {@code traversalBoundary} lets a caller mark methods opaque without
+ * this class knowing what an Activity is.
  */
 public final class CallGraphAnalyzer {
 
@@ -76,11 +85,42 @@ public final class CallGraphAnalyzer {
    */
   public List<CallGraphMatch> findCallPaths(
       MethodDeclaration entryPoint, CallTarget target, Predicate<MethodDeclaration> traversalBoundary) {
+    return findCallPaths(entryPoint, target, traversalBoundary, List.of());
+  }
+
+  /**
+   * Finds every call matching {@code target} reachable from {@code entryPoint}, the same
+   * as {@link #findCallPaths(MethodDeclaration, CallTarget, Predicate)}, additionally
+   * tracking which {@link ExecutionContext} each match was found in.
+   *
+   * @param entryPoint the method to start traversal from
+   * @param target the call pattern to look for at every call site visited
+   * @param traversalBoundary methods this traversal must not enter
+   * @param contextEntryPoints calls that change the execution context for their
+   *     functional-interface argument (e.g. {@code Workflow.sideEffect(...)}); every match
+   *     reachable from inside one carries that context, however many hops deep, until
+   *     traversal returns out of it
+   * @return one match per matching call site found; empty if none are reachable
+   */
+  public List<CallGraphMatch> findCallPaths(
+      MethodDeclaration entryPoint,
+      CallTarget target,
+      Predicate<MethodDeclaration> traversalBoundary,
+      List<ContextEntryPoint> contextEntryPoints) {
     List<CallGraphMatch> results = new ArrayList<>();
     Deque<CallPathFrame> path = new ArrayDeque<>();
     path.addLast(frameFor(entryPoint, lineOf(entryPoint)));
     Set<MethodDeclaration> visiting = Collections.newSetFromMap(new IdentityHashMap<>());
-    search(entryPoint, target, path, visiting, results, 0, traversalBoundary);
+    search(
+        entryPoint,
+        target,
+        path,
+        visiting,
+        results,
+        0,
+        traversalBoundary,
+        contextEntryPoints,
+        ExecutionContext.NORMAL_WORKFLOW);
     return results;
   }
 
@@ -91,7 +131,9 @@ public final class CallGraphAnalyzer {
       Set<MethodDeclaration> visiting,
       List<CallGraphMatch> results,
       int depth,
-      Predicate<MethodDeclaration> traversalBoundary) {
+      Predicate<MethodDeclaration> traversalBoundary,
+      List<ContextEntryPoint> contextEntryPoints,
+      ExecutionContext inheritedContext) {
     if (traversalBoundary.test(method)) {
       return;
     }
@@ -104,19 +146,25 @@ public final class CallGraphAnalyzer {
           .ifPresent(
               unit -> {
                 for (MethodCallExpr call : method.findAll(MethodCallExpr.class)) {
+                  ExecutionContext contextAtCall =
+                      effectiveContext(call, method, unit, contextEntryPoints, inheritedContext);
                   if (target.matches(call, unit)) {
-                    recordMatch(target.describe(call), unit, call, path, results, method);
+                    recordMatch(target.describe(call), unit, call, path, results, method, contextAtCall);
                     continue;
                   }
                   resolveToSource(call).ifPresent(resolved -> {
                     path.addLast(frameFor(resolved, lineOf(call)));
-                    search(resolved, target, path, visiting, results, depth + 1, traversalBoundary);
+                    search(
+                        resolved, target, path, visiting, results, depth + 1, traversalBoundary, contextEntryPoints, contextAtCall);
                     path.removeLast();
                   });
                 }
                 for (ObjectCreationExpr creation : method.findAll(ObjectCreationExpr.class)) {
                   if (target.matchesConstructor(creation, unit)) {
-                    recordMatch(target.describeConstructor(creation), unit, creation, path, results, method);
+                    ExecutionContext contextAtCreation =
+                        effectiveContext(creation, method, unit, contextEntryPoints, inheritedContext);
+                    recordMatch(
+                        target.describeConstructor(creation), unit, creation, path, results, method, contextAtCreation);
                   }
                 }
               });
@@ -125,18 +173,69 @@ public final class CallGraphAnalyzer {
     }
   }
 
+  /**
+   * The {@link ExecutionContext} in effect at {@code node}: {@code inheritedContext} (how
+   * traversal got here) unless {@code node} lies inside one of {@code contextEntryPoints}'
+   * matching calls' functional-interface argument somewhere within {@code enclosingMethod}
+   * itself, in which case the innermost such wrapper wins — a context established closer
+   * to this exact call site is more specific than whatever was inherited from further up
+   * the call chain.
+   *
+   * <p>Only recognizes the callback as an inline expression argument (a lambda, in
+   * practice) written directly at the call site, since that is what
+   * {@code Workflow.sideEffect(...)} and {@code Workflow.mutableSideEffect(...)} are
+   * used with in practice. A method reference or a variable holding a pre-built
+   * {@code Func}/{@code Supplier} is not recognized; this can be extended if a real rule
+   * ever needs it.
+   */
+  private static ExecutionContext effectiveContext(
+      Node node,
+      MethodDeclaration enclosingMethod,
+      CompilationUnit unit,
+      List<ContextEntryPoint> contextEntryPoints,
+      ExecutionContext inheritedContext) {
+    if (contextEntryPoints.isEmpty()) {
+      return inheritedContext;
+    }
+    Node current = node;
+    Optional<Node> parent = current.getParentNode();
+    while (parent.isPresent() && parent.get() != enclosingMethod) {
+      Node parentNode = parent.get();
+      if (parentNode instanceof MethodCallExpr enclosingCall && containsByIdentity(enclosingCall.getArguments(), current)) {
+        for (ContextEntryPoint entryPoint : contextEntryPoints) {
+          if (entryPoint.matcher().matches(enclosingCall, unit)) {
+            return entryPoint.context();
+          }
+        }
+      }
+      current = parentNode;
+      parent = current.getParentNode();
+    }
+    return inheritedContext;
+  }
+
+  private static boolean containsByIdentity(Iterable<? extends Node> nodes, Node target) {
+    for (Node candidate : nodes) {
+      if (candidate == target) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private static void recordMatch(
       String description,
       CompilationUnit unit,
       Node matchedNode,
       Deque<CallPathFrame> path,
       List<CallGraphMatch> results,
-      MethodDeclaration containingMethod) {
+      MethodDeclaration containingMethod,
+      ExecutionContext executionContext) {
     Path file = sourceFileOf(unit);
     int line = lineOf(matchedNode);
     List<CallPathFrame> found = new ArrayList<>(path);
     found.add(new CallPathFrame(description, file, line));
-    results.add(new CallGraphMatch(found, classNameOf(containingMethod), file, line));
+    results.add(new CallGraphMatch(found, classNameOf(containingMethod), file, line, executionContext));
   }
 
   private static Optional<MethodDeclaration> resolveToSource(MethodCallExpr call) {

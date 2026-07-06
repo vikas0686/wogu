@@ -5,6 +5,7 @@ import io.wogu.api.Rule;
 import io.wogu.api.ValidationContext;
 import io.wogu.api.Violation;
 import io.wogu.temporal.callgraph.CallGraphAnalyzer;
+import io.wogu.temporal.callgraph.ContextEntryPoint;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -34,11 +35,16 @@ interface TemporalRule {
    * @param activityBoundary matches every method that is part of a Temporal Activity
    *     implementation; a rule's traversal must not report or recurse past such a method,
    *     since Activities are not subject to workflow replay determinism constraints
+   * @param contextEntryPoints calls that establish an {@link io.wogu.temporal.callgraph.ExecutionContext}
+   *     for their callback (e.g. {@code Workflow.sideEffect(...)}), shared across every
+   *     rule so each one can be suppressed in a context it doesn't apply to without
+   *     re-detecting that context itself
    * @return violations found, if any
    */
   List<Violation> evaluate(
       ValidationContext context,
       List<ScannedWorkflowClass> workflowClasses,
       CallGraphAnalyzer callGraph,
-      Predicate<MethodDeclaration> activityBoundary);
+      Predicate<MethodDeclaration> activityBoundary,
+      List<ContextEntryPoint> contextEntryPoints);
 }

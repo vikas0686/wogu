@@ -16,13 +16,19 @@ import java.util.Objects;
  *     found in
  * @param file source file the match was found in
  * @param line 1-based line number of the matching call
+ * @param executionContext the {@link ExecutionContext} the match was found in — e.g.
+ *     {@link ExecutionContext#SIDE_EFFECT} if it is reachable from a
+ *     {@code Workflow.sideEffect(...)} callback, so a rule can be suppressed there without
+ *     needing its own AST-walking logic
  */
-public record CallGraphMatch(List<CallPathFrame> path, String containingClassName, Path file, int line) {
+public record CallGraphMatch(
+    List<CallPathFrame> path, String containingClassName, Path file, int line, ExecutionContext executionContext) {
 
   public CallGraphMatch {
     path = List.copyOf(Objects.requireNonNull(path, "path"));
     Objects.requireNonNull(containingClassName, "containingClassName");
     Objects.requireNonNull(file, "file");
+    Objects.requireNonNull(executionContext, "executionContext");
     if (path.isEmpty()) {
       throw new IllegalArgumentException("path must not be empty");
     }

@@ -20,3 +20,6 @@ replacement: >-
 
 methods:
   - java.util.UUID.randomUUID
+
+suppressedContexts:
+  - SIDE_EFFECT

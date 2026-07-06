@@ -1,5 +1,6 @@
 package com.example.wogu.sample.services;
 
+import io.temporal.workflow.Workflow;
 import java.util.UUID;
 
 public class PaymentService {
@@ -21,5 +22,13 @@ public class PaymentService {
   public long recordTimestamp() {
     // Intentional WoGu demo violation (WG003): reads the non-deterministic wall clock.
     return System.currentTimeMillis();
+  }
+
+  public String recordAuditId() {
+    // Not a WoGu violation: UUID.randomUUID() here is reachable only from inside
+    // Workflow.sideEffect(...)'s callback, so WG001 is suppressed in that execution
+    // context. Temporal runs the callback exactly once and replays its recorded result
+    // thereafter, so the value is stable across replay despite being non-deterministic.
+    return Workflow.sideEffect(String.class, () -> UUID.randomUUID().toString());
   }
 }

@@ -82,6 +82,7 @@ final class RuleDefinitionLoader {
         requiredString(data, "replacement", sourceName),
         stringList(data, "methods"),
         stringList(data, "constructors"),
+        stringList(data, "suppressedContexts"),
         stringList(data, "tags"));
   }
 

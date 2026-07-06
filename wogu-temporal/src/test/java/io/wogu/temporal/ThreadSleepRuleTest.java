@@ -199,4 +199,54 @@ class ThreadSleepRuleTest {
     assertThat(wg002.passed()).isTrue();
     assertThat(wg002.violations()).isEmpty();
   }
+
+  @Test
+  void stillFlagsThreadSleepInsideWorkflowSideEffect() throws IOException {
+    // Unlike WG001/WG003-WG007, WG002 is deliberately not suppressed inside
+    // Workflow.sideEffect(...): blocking the worker thread is unsafe there too, since
+    // sideEffect still runs on the workflow's own thread, just once instead of on replay.
+    writeJavaFile(
+        "com/example/PaymentWorkflow.java",
+        """
+        package com.example;
+
+        import io.temporal.workflow.WorkflowInterface;
+        import io.temporal.workflow.WorkflowMethod;
+
+        @WorkflowInterface
+        public interface PaymentWorkflow {
+          @WorkflowMethod
+          void process();
+        }
+        """);
+    writeJavaFile(
+        "com/example/PaymentWorkflowImpl.java",
+        """
+        package com.example;
+
+        import io.temporal.workflow.Workflow;
+
+        public class PaymentWorkflowImpl implements PaymentWorkflow {
+          @Override
+          public void process() {
+            Workflow.sideEffect(Integer.class, () -> {
+              try {
+                Thread.sleep(5000);
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+              }
+              return 1;
+            });
+          }
+        }
+        """);
+
+    RuleResult wg002 = wg002Result();
+
+    assertThat(wg002.passed()).isFalse();
+    assertThat(wg002.violations()).hasSize(1);
+    assertThat(wg002.violations().get(0).callPath())
+        .extracting(CallPathFrame::displayName)
+        .containsExactly("PaymentWorkflowImpl.process()", "Thread.sleep()");
+  }
 }

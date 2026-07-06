@@ -20,3 +20,6 @@ replacement: >-
 
 methods:
   - java.lang.Math.random
+
+suppressedContexts:
+  - SIDE_EFFECT

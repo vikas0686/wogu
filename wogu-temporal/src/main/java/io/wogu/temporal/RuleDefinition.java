@@ -33,6 +33,11 @@ import java.util.Objects;
  * @param constructors for {@code forbidden-method} rules that also (or instead) flag
  *     constructing a specific class: fully qualified class names, e.g.
  *     {@code "java.util.Random"}; empty for rules that only flag method calls
+ * @param suppressedContexts names of {@link io.wogu.temporal.callgraph.ExecutionContext}
+ *     constants (e.g. {@code "SIDE_EFFECT"}) this rule does not apply in; empty for a rule
+ *     that fires the same regardless of execution context. Interpreting these names is up
+ *     to the rule type ({@link ForbiddenMethodRule} converts them to
+ *     {@code Set<ExecutionContext>}) — this record only carries the raw, validated strings.
  * @param tags free-form labels, reserved for future use (not yet rendered anywhere)
  */
 record RuleDefinition(
@@ -48,6 +53,7 @@ record RuleDefinition(
     String replacement,
     List<String> methods,
     List<String> constructors,
+    List<String> suppressedContexts,
     List<String> tags) {
 
   RuleDefinition {
@@ -63,6 +69,7 @@ record RuleDefinition(
     Objects.requireNonNull(replacement, "replacement");
     methods = List.copyOf(Objects.requireNonNull(methods, "methods"));
     constructors = List.copyOf(Objects.requireNonNull(constructors, "constructors"));
+    suppressedContexts = List.copyOf(Objects.requireNonNull(suppressedContexts, "suppressedContexts"));
     tags = List.copyOf(Objects.requireNonNull(tags, "tags"));
   }
 

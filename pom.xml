@@ -6,7 +6,7 @@
 
   <groupId>io.github.vikas0686</groupId>
   <artifactId>wogu-parent</artifactId>
-  <version>0.1.1</version>
+  <version>${revision}</version>
   <packaging>pom</packaging>
 
   <name>WoGu Parent</name>
@@ -60,6 +60,15 @@
   </modules>
 
   <properties>
+    <!-- The one place that sets the version for every module in this reactor (each
+         submodule's <parent><version> is also ${revision}, a Maven "CI Friendly Version"
+         placeholder resolved at build time) and, via a direct pom.xml read, for the
+         independent wogu-gradle-plugin Gradle build too. Bump this single line to release
+         a new version; see RELEASING.md. flatten-maven-plugin (below) rewrites this
+         placeholder to a literal value in the pom that actually gets installed/deployed,
+         since a placeholder left in a published pom would be meaningless to consumers. -->
+    <revision>0.1.1</revision>
+
     <!-- Build baseline -->
     <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -83,6 +92,7 @@
     <maven-plugin-plugin.version>3.15.2</maven-plugin-plugin.version>
 
     <!-- Build plugin versions -->
+    <flatten-maven-plugin.version>1.7.3</flatten-maven-plugin.version>
     <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
     <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
     <maven-failsafe-plugin.version>3.5.2</maven-failsafe-plugin.version>
@@ -238,6 +248,39 @@
           <version>${maven-surefire-plugin.version}</version>
         </plugin>
         <plugin>
+          <!-- Rewrites the ${revision} placeholder (see the <revision> property above)
+               to a literal version in the pom that actually gets installed/deployed, so
+               anything resolving these coordinates — mavenLocal(), Maven Central, the
+               reactor's own inter-module dependencies — sees a real version number, never
+               the placeholder text. resolveCiFriendliesOnly keeps every other part of the
+               pom (comments, dependencyManagement, profiles) untouched. Runs on every
+               'mvn install'/'deploy', not just the 'release' profile, since even a local
+               install needs a resolved pom for other tools (wogu-gradle-plugin's
+               mavenLocal() dependency resolution) to consume. -->
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>flatten-maven-plugin</artifactId>
+          <version>${flatten-maven-plugin.version}</version>
+          <configuration>
+            <flattenMode>resolveCiFriendliesOnly</flattenMode>
+          </configuration>
+          <executions>
+            <execution>
+              <id>flatten</id>
+              <phase>process-resources</phase>
+              <goals>
+                <goal>flatten</goal>
+              </goals>
+            </execution>
+            <execution>
+              <id>flatten-clean</id>
+              <phase>clean</phase>
+              <goals>
+                <goal>clean</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>${maven-failsafe-plugin.version}</version>
@@ -353,6 +396,10 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>flatten-maven-plugin</artifactId>
       </plugin>
     </plugins>
   </build>

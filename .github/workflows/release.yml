@@ -26,13 +26,15 @@ jobs:
           cache: maven
 
       - name: Confirm the tag matches the project version
+        # wogu-gradle-plugin reads its version from the same <revision> property (see its
+        # build.gradle.kts), so checking the pom's resolved project.version is sufficient
+        # for both build systems.
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#release-}"
           POM_VERSION=$(mvn -q -B help:evaluate -Dexpression=project.version -DforceStdout)
-          GRADLE_VERSION=$(grep -E '^version\s*=' wogu-gradle-plugin/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
-          echo "tag=$TAG_VERSION pom=$POM_VERSION gradle-plugin=$GRADLE_VERSION"
-          if [ "$TAG_VERSION" != "$POM_VERSION" ] || [ "$TAG_VERSION" != "$GRADLE_VERSION" ]; then
-            echo "::error::Tag ${GITHUB_REF_NAME} (version $TAG_VERSION) does not match pom.xml ($POM_VERSION) and/or wogu-gradle-plugin/build.gradle.kts ($GRADLE_VERSION). Bump the versions and push a new commit before retagging."
+          echo "tag=$TAG_VERSION pom=$POM_VERSION"
+          if [ "$TAG_VERSION" != "$POM_VERSION" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} (version $TAG_VERSION) does not match the <revision> property in pom.xml ($POM_VERSION). Bump it and push a new commit before retagging."
             exit 1
           fi
 

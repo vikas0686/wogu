@@ -41,9 +41,10 @@ them further.
 
 ## Cutting a release
 
-1. Bump the version everywhere it's hardcoded (all module `pom.xml` files share
-   `${project.version}` from the root `pom.xml`, so only the root needs editing there;
-   `wogu-gradle-plugin/build.gradle.kts`'s `version` is separate and needs its own edit).
+1. Bump the `<revision>` property in the root `pom.xml` — the one place the version lives.
+   Every module's `pom.xml` (via `${revision}` in its `<parent>`) and
+   `wogu-gradle-plugin/build.gradle.kts` (which reads `<revision>` straight out of the
+   root `pom.xml`) both derive from it automatically; nothing else needs editing.
 2. Move the `[Unreleased]` section of [CHANGELOG.md](CHANGELOG.md) under a new
    `## [X.Y.Z] - YYYY-MM-DD` heading.
 3. Commit ("Prepare vX.Y.Z release"), push, and let `ci.yml` go green on `main`.

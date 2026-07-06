@@ -1,10 +1,22 @@
+import javax.xml.parsers.DocumentBuilderFactory
+
 plugins {
     `java-gradle-plugin`
     id("com.gradle.plugin-publish") version "1.3.1"
 }
 
 group = "io.github.vikas0686"
-version =  "0.1.1"
+// wogu-gradle-plugin is a separate Gradle build (not a Maven module), but it's still
+// released in lockstep with the Maven reactor (see VERSIONING.md), so it reads the same
+// single source of truth instead of duplicating the version here: the <revision>
+// property in the root pom.xml. Bump that one line to release a new version everywhere.
+version = readRevisionFromRootPom()
+
+fun readRevisionFromRootPom(): String {
+    val rootPom = rootDir.resolveSibling("pom.xml")
+    val document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(rootPom)
+    return document.getElementsByTagName("revision").item(0).textContent.trim()
+}
 
 java {
     toolchain {

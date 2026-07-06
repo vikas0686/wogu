@@ -9,6 +9,7 @@ import io.wogu.api.ValidatorRunOutcome;
 import io.wogu.api.Violation;
 import io.wogu.api.WorkflowValidator;
 import io.wogu.temporal.callgraph.CallGraphAnalyzer;
+import io.wogu.temporal.callgraph.ContextEntryPoint;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -62,11 +63,12 @@ public final class TemporalWorkflowValidator implements WorkflowValidator {
     List<ScannedWorkflowClass> workflowClasses = scanner.scan(units);
     CallGraphAnalyzer callGraph = new CallGraphAnalyzer();
     Predicate<MethodDeclaration> activityBoundary = ActivityAwareness.activityBoundary(units);
+    List<ContextEntryPoint> contextEntryPoints = TemporalExecutionContexts.entryPoints();
 
     List<RuleResult> ruleResults = new ArrayList<>(rules.size());
     for (TemporalRule rule : rules) {
       Instant start = Instant.now();
-      List<Violation> violations = rule.evaluate(context, workflowClasses, callGraph, activityBoundary);
+      List<Violation> violations = rule.evaluate(context, workflowClasses, callGraph, activityBoundary, contextEntryPoints);
       Duration elapsed = Duration.between(start, Instant.now());
       ruleResults.add(RuleResult.of(rule.metadata(), violations, elapsed));
     }

@@ -1,10 +1,14 @@
 package com.example.wogu.sample.services;
 
+import io.temporal.workflow.Workflow;
+
 import java.security.SecureRandom;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class RandomnessService {
+  private final Random random = Workflow.newRandom();
 
   public double rollDiscount() {
     // Intentional WoGu demo violation (WG004): Math.random() is not replay-safe.
@@ -30,4 +34,13 @@ public class RandomnessService {
     random.nextBytes(token);
     return token;
   }
+
+  public Integer recordAuditId() {
+    // Not a WoGu violation: UUID.randomUUID() here is reachable only from inside
+    // Workflow.sideEffect(...)'s callback, so WG001 is suppressed in that execution
+    // context. Temporal runs the callback exactly once and replays its recorded result
+    // thereafter, so the value is stable across replay despite being non-deterministic.
+    return Workflow.sideEffect(Integer.class, () -> random.nextInt());
+  }
+
 }

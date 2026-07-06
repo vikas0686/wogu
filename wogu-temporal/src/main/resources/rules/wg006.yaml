@@ -21,3 +21,6 @@ replacement: >-
 
 methods:
   - java.util.concurrent.ThreadLocalRandom.current
+
+suppressedContexts:
+  - SIDE_EFFECT

@@ -25,3 +25,6 @@ methods:
 
 constructors:
   - java.security.SecureRandom
+
+suppressedContexts:
+  - SIDE_EFFECT

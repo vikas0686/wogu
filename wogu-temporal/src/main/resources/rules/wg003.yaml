@@ -27,3 +27,6 @@ methods:
   - java.time.ZonedDateTime.now
   - java.time.Clock.systemUTC
   - java.time.Clock.systemDefaultZone
+
+suppressedContexts:
+  - SIDE_EFFECT

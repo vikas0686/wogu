@@ -234,6 +234,67 @@ class SecureRandomRuleTest {
   }
 
   @Test
+  void doesNotFlagSecureRandomUsageInsideWorkflowSideEffect() throws IOException {
+    writeWorkflowInterface();
+    writeJavaFile(
+        "com/example/PaymentWorkflowImpl.java",
+        """
+        package com.example;
+
+        import io.temporal.workflow.Workflow;
+        import java.security.SecureRandom;
+
+        public class PaymentWorkflowImpl implements PaymentWorkflow {
+          @Override
+          public void process() {
+            Workflow.sideEffect(byte[].class, () -> {
+              byte[] token = new byte[16];
+              new SecureRandom().nextBytes(token);
+              return token;
+            });
+          }
+        }
+        """);
+
+    RuleResult wg007 = wg007Result();
+
+    assertThat(wg007.passed()).isTrue();
+    assertThat(wg007.violations()).isEmpty();
+  }
+
+  @Test
+  void stillFlagsSecureRandomUsageOutsideWorkflowSideEffectInTheSameWorkflow() throws IOException {
+    writeWorkflowInterface();
+    writeJavaFile(
+        "com/example/PaymentWorkflowImpl.java",
+        """
+        package com.example;
+
+        import io.temporal.workflow.Workflow;
+        import java.security.SecureRandom;
+
+        public class PaymentWorkflowImpl implements PaymentWorkflow {
+          @Override
+          public void process() {
+            Workflow.sideEffect(byte[].class, () -> {
+              byte[] token = new byte[16];
+              new SecureRandom().nextBytes(token);
+              return token;
+            });
+            new SecureRandom();
+          }
+        }
+        """);
+
+    RuleResult wg007 = wg007Result();
+
+    assertThat(wg007.passed()).isFalse();
+    assertThat(wg007.violations())
+        .extracting(v -> v.callPath().get(v.callPath().size() - 1).displayName())
+        .containsExactly("new SecureRandom()");
+  }
+
+  @Test
   void doesNotFlagSecureRandomUsageOutsideAWorkflowImplementation() throws IOException {
     writeJavaFile(
         "com/example/PlainTokenGenerator.java",

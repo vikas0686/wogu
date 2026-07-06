@@ -232,6 +232,65 @@ class JavaUtilRandomRuleTest {
   }
 
   @Test
+  void doesNotFlagRandomUsageInsideWorkflowSideEffect() throws IOException {
+    writeWorkflowInterface();
+    writeJavaFile(
+        "com/example/PaymentWorkflowImpl.java",
+        """
+        package com.example;
+
+        import io.temporal.workflow.Workflow;
+        import java.util.Random;
+
+        public class PaymentWorkflowImpl implements PaymentWorkflow {
+          @Override
+          public void process() {
+            Workflow.sideEffect(Integer.class, () -> {
+              Random random = new Random();
+              return random.nextInt();
+            });
+          }
+        }
+        """);
+
+    RuleResult wg005 = wg005Result();
+
+    assertThat(wg005.passed()).isTrue();
+    assertThat(wg005.violations()).isEmpty();
+  }
+
+  @Test
+  void stillFlagsRandomUsageOutsideWorkflowSideEffectInTheSameWorkflow() throws IOException {
+    writeWorkflowInterface();
+    writeJavaFile(
+        "com/example/PaymentWorkflowImpl.java",
+        """
+        package com.example;
+
+        import io.temporal.workflow.Workflow;
+        import java.util.Random;
+
+        public class PaymentWorkflowImpl implements PaymentWorkflow {
+          @Override
+          public void process() {
+            Workflow.sideEffect(Integer.class, () -> {
+              Random random = new Random();
+              return random.nextInt();
+            });
+            new Random().nextDouble();
+          }
+        }
+        """);
+
+    RuleResult wg005 = wg005Result();
+
+    assertThat(wg005.passed()).isFalse();
+    assertThat(wg005.violations())
+        .extracting(v -> v.callPath().get(v.callPath().size() - 1).displayName())
+        .containsExactlyInAnyOrder("new Random()", "Random.nextDouble()");
+  }
+
+  @Test
   void doesNotFlagRandomUsageOutsideAWorkflowImplementation() throws IOException {
     writeJavaFile(
         "com/example/PlainDiscountPicker.java",

@@ -33,6 +33,12 @@
     correctly stops at an Activity implementation's boundary instead of flagging code that
     isn't subject to workflow replay determinism.
 
+    PaymentService.recordAuditId() calls UUID.randomUUID() too, but from inside
+    Workflow.sideEffect(...)'s callback; that call is not reported either, demonstrating
+    that WG001 (like every other rule with suppressedContexts: SIDE_EFFECT) is suppressed
+    inside a Temporal side effect, since Temporal executes it exactly once and replays its
+    recorded result rather than re-running it during replay.
+
     This module is intentionally excluded from the repo's default Maven reactor (see the
     root pom's 'with-samples' profile), since it fails by design. Run it explicitly:
       mvn -f sample-temporal-project verify

@@ -72,6 +72,54 @@ class RuleDefinitionLoaderTest {
   }
 
   @Test
+  void parsesSuppressedContextsWhenPresent() {
+    RuleDefinition definition =
+        loader.parse(
+            """
+            id: WG902
+            type: forbidden-method
+            title: Example Rule
+            category: Determinism
+            severity: ERROR
+            engine: Temporal Java SDK
+            since: 0.2.0
+            documentation: docs/rules/WG902.md
+            description: Example description.
+            replacement: Example replacement.
+            methods:
+              - java.util.UUID.randomUUID
+            suppressedContexts:
+              - SIDE_EFFECT
+            """,
+            "test.yaml");
+
+    assertThat(definition.suppressedContexts()).containsExactly("SIDE_EFFECT");
+  }
+
+  @Test
+  void defaultsSuppressedContextsToEmptyWhenAbsent() {
+    RuleDefinition definition =
+        loader.parse(
+            """
+            id: WG900
+            type: forbidden-method
+            title: Example Rule
+            category: Determinism
+            severity: ERROR
+            engine: Temporal Java SDK
+            since: 0.2.0
+            documentation: docs/rules/WG900.md
+            description: Example description.
+            replacement: Example replacement.
+            methods:
+              - java.util.UUID.randomUUID
+            """,
+            "test.yaml");
+
+    assertThat(definition.suppressedContexts()).isEmpty();
+  }
+
+  @Test
   void rejectsADefinitionMissingARequiredField() {
     String missingSeverity =
         """

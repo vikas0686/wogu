@@ -278,4 +278,37 @@ class ExecutorServiceRuleTest {
     assertThat(wg010.passed()).isTrue();
     assertThat(wg010.violations()).isEmpty();
   }
+
+  @Test
+  void stillFlagsThreadCreationInsideWorkflowSideEffect() throws IOException {
+    // Unlike WG001/WG003-WG007, WG010 is deliberately not suppressed inside
+    // Workflow.sideEffect(...): creating a thread there still escapes Temporal's
+    // execution model the same way it would anywhere else in workflow code.
+    writeWorkflowInterface();
+    writeJavaFile(
+        "com/example/PaymentWorkflowImpl.java",
+        """
+        package com.example;
+
+        import io.temporal.workflow.Workflow;
+
+        public class PaymentWorkflowImpl implements PaymentWorkflow {
+          @Override
+          public void process() {
+            Workflow.sideEffect(Integer.class, () -> {
+              Thread thread = new Thread(() -> {});
+              return 1;
+            });
+          }
+        }
+        """);
+
+    RuleResult wg010 = wg010Result();
+
+    assertThat(wg010.passed()).isFalse();
+    assertThat(wg010.violations()).hasSize(1);
+    assertThat(wg010.violations().get(0).callPath())
+        .extracting(CallPathFrame::displayName)
+        .containsExactly("PaymentWorkflowImpl.process()", "new Thread()");
+  }
 }

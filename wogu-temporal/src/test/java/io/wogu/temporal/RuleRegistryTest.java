@@ -42,6 +42,7 @@ class RuleRegistryTest {
             "Example replacement",
             List.of(),
             List.of(),
+            List.of(),
             List.of());
 
     assertThatThrownBy(() -> RuleRegistry.create(unknownType))
@@ -65,6 +66,7 @@ class RuleRegistryTest {
             "docs/rules/WG050.md",
             "Example replacement",
             List.of("java.util.UUID.randomUUID"),
+            List.of(),
             List.of(),
             List.of());
 

@@ -25,6 +25,11 @@ class CallGraphAnalyzerTest {
 
   private static final CallTarget RANDOM_CONSTRUCTOR = new ConstructorCallTarget("java.util.Random");
 
+  private static final List<ContextEntryPoint> SIDE_EFFECT_ENTRY_POINTS =
+      List.of(
+          new ContextEntryPoint(
+              new StaticMethodCallTarget("io.temporal.workflow.Workflow", "sideEffect"), ExecutionContext.SIDE_EFFECT));
+
   private static final CallTarget UUID_RANDOM_UUID =
       new CallTarget() {
         @Override
@@ -345,5 +350,145 @@ class CallGraphAnalyzerTest {
         analyzer.findCallPaths(entry, UUID_RANDOM_UUID, method -> method.getNameAsString().equals("doWork"));
 
     assertThat(matches).hasSize(1);
+  }
+
+  @Test
+  void matchesDefaultToNormalWorkflowContextWhenNoContextEntryPointsAreSupplied() throws IOException {
+    writeJavaFile(
+        "Foo.java",
+        """
+        import java.util.UUID;
+
+        class Foo {
+          void run() {
+            UUID.randomUUID();
+          }
+        }
+        """);
+
+    MethodDeclaration entry = methodNamed(parse(), "Foo", "run");
+    List<CallGraphMatch> matches = analyzer.findCallPaths(entry, UUID_RANDOM_UUID);
+
+    assertThat(matches).hasSize(1);
+    assertThat(matches.get(0).executionContext()).isEqualTo(ExecutionContext.NORMAL_WORKFLOW);
+  }
+
+  @Test
+  void callsInsideAContextEntryPointsCallbackCarryItsExecutionContext() throws IOException {
+    writeJavaFile(
+        "Foo.java",
+        """
+        import io.temporal.workflow.Workflow;
+        import java.util.UUID;
+
+        class Foo {
+          void run() {
+            Workflow.sideEffect(String.class, () -> UUID.randomUUID().toString());
+          }
+        }
+        """);
+
+    MethodDeclaration entry = methodNamed(parse(), "Foo", "run");
+    List<CallGraphMatch> matches =
+        analyzer.findCallPaths(entry, UUID_RANDOM_UUID, method -> false, SIDE_EFFECT_ENTRY_POINTS);
+
+    assertThat(matches).hasSize(1);
+    assertThat(matches.get(0).executionContext()).isEqualTo(ExecutionContext.SIDE_EFFECT);
+  }
+
+  @Test
+  void callsOutsideAContextEntryPointsCallbackKeepTheNormalWorkflowContext() throws IOException {
+    writeJavaFile(
+        "Foo.java",
+        """
+        import java.util.UUID;
+
+        class Foo {
+          void run() {
+            UUID.randomUUID();
+          }
+        }
+        """);
+
+    MethodDeclaration entry = methodNamed(parse(), "Foo", "run");
+    List<CallGraphMatch> matches =
+        analyzer.findCallPaths(entry, UUID_RANDOM_UUID, method -> false, SIDE_EFFECT_ENTRY_POINTS);
+
+    assertThat(matches).hasSize(1);
+    assertThat(matches.get(0).executionContext()).isEqualTo(ExecutionContext.NORMAL_WORKFLOW);
+  }
+
+  @Test
+  void aContextEntryPointsExecutionContextPropagatesThroughAResolvedCallReachedFromItsCallback() throws IOException {
+    writeJavaFile(
+        "Foo.java",
+        """
+        import io.temporal.workflow.Workflow;
+
+        class Foo {
+          private final Service service = new Service();
+
+          void run() {
+            Workflow.sideEffect(String.class, () -> service.generateId());
+          }
+        }
+        """);
+    writeJavaFile(
+        "Service.java",
+        """
+        import java.util.UUID;
+
+        class Service {
+          String generateId() {
+            return UUID.randomUUID().toString();
+          }
+        }
+        """);
+
+    List<CompilationUnit> units = parse();
+    MethodDeclaration entry = methodNamed(units, "Foo", "run");
+    List<CallGraphMatch> matches =
+        analyzer.findCallPaths(entry, UUID_RANDOM_UUID, method -> false, SIDE_EFFECT_ENTRY_POINTS);
+
+    assertThat(matches).hasSize(1);
+    assertThat(matches.get(0).containingClassName()).isEqualTo("Service");
+    assertThat(matches.get(0).executionContext()).isEqualTo(ExecutionContext.SIDE_EFFECT);
+  }
+
+  @Test
+  void aMethodCalledBothInsideAndOutsideACallbackIsReportedOnceForEachContext() throws IOException {
+    writeJavaFile(
+        "Foo.java",
+        """
+        import io.temporal.workflow.Workflow;
+
+        class Foo {
+          private final Service service = new Service();
+
+          void run() {
+            Workflow.sideEffect(String.class, () -> service.generateId());
+            service.generateId();
+          }
+        }
+        """);
+    writeJavaFile(
+        "Service.java",
+        """
+        import java.util.UUID;
+
+        class Service {
+          String generateId() {
+            return UUID.randomUUID().toString();
+          }
+        }
+        """);
+
+    List<CompilationUnit> units = parse();
+    MethodDeclaration entry = methodNamed(units, "Foo", "run");
+    List<CallGraphMatch> matches =
+        analyzer.findCallPaths(entry, UUID_RANDOM_UUID, method -> false, SIDE_EFFECT_ENTRY_POINTS);
+
+    assertThat(matches).extracting(CallGraphMatch::executionContext)
+        .containsExactlyInAnyOrder(ExecutionContext.SIDE_EFFECT, ExecutionContext.NORMAL_WORKFLOW);
   }
 }

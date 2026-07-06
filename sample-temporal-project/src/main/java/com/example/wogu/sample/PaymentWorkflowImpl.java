@@ -20,11 +20,14 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
     String paymentId = paymentService.executeUUIDError();
     paymentService.waitForSettlement();
     long processedAt = paymentService.recordTimestamp();
+    String auditId = paymentService.recordAuditId();
+
 
     randomnessService.rollDiscount();
     randomnessService.pickLuckyNumber();
     randomnessService.pickFastNumber();
     randomnessService.generateSecureToken();
+    randomnessService.recordAuditId();
 
     configurationService.region();
     configurationService.userHome();
@@ -32,6 +35,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
     concurrencyService.createNotificationPool();
 
     activity.processPaymentActivity(accountId);
-    return "Payment " + paymentId + " processed for account " + accountId + " at " + processedAt;
+    return "Payment " + paymentId + " (audit " + auditId + ") processed for account " + accountId + " at " + processedAt;
   }
 }

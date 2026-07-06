@@ -27,3 +27,6 @@ methods:
 
 constructors:
   - java.util.Random
+
+suppressedContexts:
+  - SIDE_EFFECT

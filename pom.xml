@@ -67,7 +67,7 @@
          a new version; see RELEASING.md. flatten-maven-plugin (below) rewrites this
          placeholder to a literal value in the pom that actually gets installed/deployed,
          since a placeholder left in a published pom would be meaningless to consumers. -->
-    <revision>0.1.1</revision>
+    <revision>0.1.2</revision>
 
     <!-- Build baseline -->
     <maven.compiler.release>17</maven.compiler.release>

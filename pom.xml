@@ -298,13 +298,21 @@
         </plugin>
         <plugin>
           <!-- Signs every attached artifact (jar, sources jar, javadoc jar, pom) with the
-               local GPG key. No passphrase is configured here: gpg-agent handles it (an
-               interactive prompt, cached for the rest of the session) so nothing secret
-               ever needs to live in this repo or in Maven properties. Only ever invoked by
-               the 'release' profile, never during a plain build/test run. -->
+               local GPG key. Loopback pinentry lets gpg read the passphrase from the
+               MAVEN_GPG_PASSPHRASE env var when set (the release.yml workflow does this
+               with a secret); left unset, gpg-agent falls back to an interactive terminal
+               prompt, cached for the rest of the session, so nothing secret needs to live
+               in this repo or in Maven properties for a local release. Only ever invoked
+               by the 'release' profile, never during a plain build/test run. -->
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-gpg-plugin</artifactId>
           <version>${maven-gpg-plugin.version}</version>
+          <configuration>
+            <gpgArguments>
+              <arg>--pinentry-mode</arg>
+              <arg>loopback</arg>
+            </gpgArguments>
+          </configuration>
           <executions>
             <execution>
               <id>sign-artifacts</id>
@@ -320,7 +328,8 @@
                bundle to the Central Publisher Portal API and (optionally) releases it,
                replacing the legacy nexus-staging-maven-plugin/OSSRH staging-repository flow.
                'publishingServerId' must match a <server> id in ~/.m2/settings.xml holding the
-               Sonatype User Token; see the settings.xml template in the release runbook.
+               Sonatype User Token for a local release, or CENTRAL_USERNAME/CENTRAL_PASSWORD
+               secrets for release.yml's CI release; see RELEASING.md for both.
                autoPublish=false means 'mvn deploy -Prelease' uploads and validates but leaves
                the deployment pending in the portal for a manual review-and-publish click —
                the safest default until you've done this once. -->
@@ -369,8 +378,9 @@
 
              mvn clean deploy -Prelease
 
-           See the release runbook (asked for alongside this profile) for the full
-           settings.xml template, validation steps, and what a successful run looks like. -->
+           .github/workflows/release.yml runs this same profile automatically on a
+           release-X.Y.Z tag push; see RELEASING.md for the required secrets, the settings.xml
+           template for a manual local release, and what a successful run looks like. -->
       <id>release</id>
       <build>
         <plugins>

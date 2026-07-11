@@ -38,6 +38,12 @@ import java.util.Objects;
  *     that fires the same regardless of execution context. Interpreting these names is up
  *     to the rule type ({@link ForbiddenMethodRule} converts them to
  *     {@code Set<ExecutionContext>}) — this record only carries the raw, validated strings.
+ * @param requiredContexts the inverse of {@code suppressedContexts}: names of
+ *     {@link dev.wogu.temporal.callgraph.ExecutionContext} constants this rule only applies
+ *     in; empty (the common case) means the rule fires regardless of context. WG011, which
+ *     exists specifically to flag I/O reachable only from inside a
+ *     {@code Workflow.sideEffect(...)} callback, needs this: {@code suppressedContexts}
+ *     alone can only exclude a context, never require one.
  * @param tags free-form labels, reserved for future use (not yet rendered anywhere)
  */
 record RuleDefinition(
@@ -54,6 +60,7 @@ record RuleDefinition(
     List<String> methods,
     List<String> constructors,
     List<String> suppressedContexts,
+    List<String> requiredContexts,
     List<String> tags) {
 
   RuleDefinition {
@@ -70,6 +77,7 @@ record RuleDefinition(
     methods = List.copyOf(Objects.requireNonNull(methods, "methods"));
     constructors = List.copyOf(Objects.requireNonNull(constructors, "constructors"));
     suppressedContexts = List.copyOf(Objects.requireNonNull(suppressedContexts, "suppressedContexts"));
+    requiredContexts = List.copyOf(Objects.requireNonNull(requiredContexts, "requiredContexts"));
     tags = List.copyOf(Objects.requireNonNull(tags, "tags"));
   }
 

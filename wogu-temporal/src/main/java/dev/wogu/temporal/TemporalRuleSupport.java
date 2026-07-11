@@ -27,10 +27,11 @@ import java.util.function.Predicate;
  * violation unless its execution context is suppressed" loop, and the same file-path
  * relativization. A new rule of this shape should only need to supply its {@link Rule}
  * metadata, a {@link CallTarget} (or several — see
- * {@link #findViolations(List, CallGraphAnalyzer, List, Rule, ValidationContext, String, String, Predicate, List, Set)}),
+ * {@link #findViolations(List, CallGraphAnalyzer, List, Rule, ValidationContext, String, String, Predicate, List, Set, Set)}),
  * its message/suggested-fix text, and (optionally) which {@link ExecutionContext}s it is
- * suppressed in. The engine — not the rule — decides whether a found violation is
- * suppressed: a rule never inspects the AST itself to answer that question.
+ * suppressed in, or — the inverse — which one it's confined to. The engine — not the rule —
+ * decides whether a found violation is suppressed or out of context: a rule never inspects
+ * the AST itself to answer that question.
  */
 final class TemporalRuleSupport {
 
@@ -47,7 +48,8 @@ final class TemporalRuleSupport {
       String suggestedFix,
       Predicate<MethodDeclaration> activityBoundary,
       List<ContextEntryPoint> contextEntryPoints,
-      Set<ExecutionContext> suppressedContexts) {
+      Set<ExecutionContext> suppressedContexts,
+      Set<ExecutionContext> requiredContexts) {
     return findViolations(
         workflowClasses,
         callGraph,
@@ -58,15 +60,17 @@ final class TemporalRuleSupport {
         suggestedFix,
         activityBoundary,
         contextEntryPoints,
-        suppressedContexts);
+        suppressedContexts,
+        requiredContexts);
   }
 
   /**
    * Runs every target in {@code targets} from every workflow class's entry point(s) and
    * returns one {@link Violation} per match found, across all of them, except any match
-   * whose {@link CallGraphMatch#executionContext()} is in {@code suppressedContexts}. Used
-   * by rules that flag several distinct call patterns under one rule id (e.g. WG003's
-   * several non-deterministic time APIs).
+   * whose {@link CallGraphMatch#executionContext()} is in {@code suppressedContexts}, or —
+   * when {@code requiredContexts} is non-empty — any match whose context <em>isn't</em> one
+   * of them. Used by rules that flag several distinct call patterns under one rule id (e.g.
+   * WG003's several non-deterministic time APIs).
    *
    * @param activityBoundary matches every method that is part of a Temporal Activity
    *     implementation; traversal stops there, since Activity code isn't subject to
@@ -76,6 +80,11 @@ final class TemporalRuleSupport {
    *     traversal so each match can be attributed to the context it was found in
    * @param suppressedContexts execution contexts this specific rule does not apply in;
    *     empty means the rule fires regardless of context, exactly as before this existed
+   * @param requiredContexts the inverse: execution contexts this rule <em>only</em> applies
+   *     in (e.g. WG011 only flagging I/O reachable from inside a
+   *     {@code Workflow.sideEffect(...)} callback); empty means no such restriction.
+   *     Checked after {@code suppressedContexts}, though in practice a rule uses one or the
+   *     other, never both
    */
   static List<Violation> findViolations(
       List<ScannedWorkflowClass> workflowClasses,
@@ -87,13 +96,17 @@ final class TemporalRuleSupport {
       String suggestedFix,
       Predicate<MethodDeclaration> activityBoundary,
       List<ContextEntryPoint> contextEntryPoints,
-      Set<ExecutionContext> suppressedContexts) {
+      Set<ExecutionContext> suppressedContexts,
+      Set<ExecutionContext> requiredContexts) {
     List<Violation> violations = new ArrayList<>();
     for (ScannedWorkflowClass workflowClass : workflowClasses) {
       for (MethodDeclaration entryPoint : workflowClass.entryPoints()) {
         for (CallTarget target : targets) {
           for (CallGraphMatch match : callGraph.findCallPaths(entryPoint, target, activityBoundary, contextEntryPoints)) {
             if (suppressedContexts.contains(match.executionContext())) {
+              continue;
+            }
+            if (!requiredContexts.isEmpty() && !requiredContexts.contains(match.executionContext())) {
               continue;
             }
             violations.add(toViolation(rule, context, match, message, suggestedFix));

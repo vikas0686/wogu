@@ -18,14 +18,14 @@
     Demonstrates wogu-maven-plugin against real Temporal Java SDK code. PaymentWorkflowImpl
     calls into four service classes under com.example.wogu.sample.services, each grouped by
     the kind of non-determinism it demonstrates: PaymentService (UUID.randomUUID() for
-    WG001, Thread.sleep() for WG002, System.currentTimeMillis() for WG003),
-    RandomnessService (Math.random() for WG004; new Random()/nextInt() for WG005;
-    ThreadLocalRandom.current() for WG006; new SecureRandom()/nextBytes() for WG007),
-    ConfigurationService (System.getenv() for WG008, System.getProperty() for WG009), and
-    ConcurrencyService (Executors.newFixedThreadPool() for WG010). 'mvn verify'
-    intentionally fails here and writes target/wogu/index.html showing all twelve
-    violations (WG005 and WG007 each report twice: once for the constructor, once for the
-    instance method called on it).
+    WG001, Thread.sleep() for WG002, System.currentTimeMillis() for WG003, a network call
+    inside Workflow.sideEffect() for WG011), RandomnessService (Math.random() for WG004;
+    new Random()/nextInt() for WG005; ThreadLocalRandom.current() for WG006; new
+    SecureRandom()/nextBytes() for WG007), ConfigurationService (System.getenv() for WG008,
+    System.getProperty() for WG009), and ConcurrencyService
+    (Executors.newFixedThreadPool() for WG010). 'mvn verify' intentionally fails here and
+    writes target/wogu/index.html showing all thirteen violations (WG005 and WG007 each
+    report twice: once for the constructor, once for the instance method called on it).
 
     PaymentWorkflowImpl also calls a real Activity (PaymentActivityImpl, via its
     PaymentActivity interface) whose implementation contains the same UUID/sleep/clock
@@ -37,7 +37,11 @@
     Workflow.sideEffect(...)'s callback; that call is not reported either, demonstrating
     that WG001 (like every other rule with suppressedContexts: SIDE_EFFECT) is suppressed
     inside a Temporal side effect, since Temporal executes it exactly once and replays its
-    recorded result rather than re-running it during replay.
+    recorded result rather than re-running it during replay. PaymentService.fetchAccountTier()
+    shows the other side of that same coin: WG011 fires precisely because the call is inside
+    a side effect, since sideEffect() makes I/O safe from determinism problems but not from
+    the availability problems of running unretried, unbounded network calls on the workflow
+    thread.
 
     This module is intentionally excluded from the repo's default Maven reactor (see the
     root pom's 'with-samples' profile), since it fails by design. Run it explicitly:

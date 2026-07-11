@@ -120,6 +120,55 @@ class RuleDefinitionLoaderTest {
   }
 
   @Test
+  void parsesRequiredContextsWhenPresent() {
+    RuleDefinition definition =
+        loader.parse(
+            """
+            id: WG011
+            type: forbidden-method
+            title: Example Rule
+            category: Determinism
+            severity: ERROR
+            engine: Temporal Java SDK
+            since: 1.1.0
+            documentation: docs/rules/WG011.md
+            description: Example description.
+            replacement: Example replacement.
+            constructors:
+              - java.net.Socket
+            requiredContexts:
+              - SIDE_EFFECT
+              - MUTABLE_SIDE_EFFECT
+            """,
+            "test.yaml");
+
+    assertThat(definition.requiredContexts()).containsExactly("SIDE_EFFECT", "MUTABLE_SIDE_EFFECT");
+  }
+
+  @Test
+  void defaultsRequiredContextsToEmptyWhenAbsent() {
+    RuleDefinition definition =
+        loader.parse(
+            """
+            id: WG900
+            type: forbidden-method
+            title: Example Rule
+            category: Determinism
+            severity: ERROR
+            engine: Temporal Java SDK
+            since: 0.2.0
+            documentation: docs/rules/WG900.md
+            description: Example description.
+            replacement: Example replacement.
+            methods:
+              - java.util.UUID.randomUUID
+            """,
+            "test.yaml");
+
+    assertThat(definition.requiredContexts()).isEmpty();
+  }
+
+  @Test
   void rejectsADefinitionMissingARequiredField() {
     String missingSeverity =
         """
@@ -156,7 +205,7 @@ class RuleDefinitionLoaderTest {
     assertThat(definitions)
         .extracting(RuleDefinition::id)
         .containsExactlyInAnyOrder(
-            "WG001", "WG002", "WG003", "WG004", "WG005", "WG006", "WG007", "WG008", "WG009", "WG010");
+            "WG001", "WG002", "WG003", "WG004", "WG005", "WG006", "WG007", "WG008", "WG009", "WG010", "WG011");
     assertThat(definitions).allSatisfy(definition -> assertThat(definition.type()).isEqualTo("forbidden-method"));
   }
 }

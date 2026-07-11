@@ -25,6 +25,7 @@ class RuleDefinitionTest {
         List.of("java.util.UUID.randomUUID"),
         List.of(),
         List.of(),
+        List.of(),
         List.of());
   }
 

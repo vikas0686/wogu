@@ -21,6 +21,7 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
     paymentService.waitForSettlement();
     long processedAt = paymentService.recordTimestamp();
     String auditId = paymentService.recordAuditId();
+    paymentService.fetchAccountTier();
 
 
     randomnessService.rollDiscount();

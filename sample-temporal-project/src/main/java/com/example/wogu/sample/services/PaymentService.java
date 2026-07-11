@@ -1,6 +1,7 @@
 package com.example.wogu.sample.services;
 
 import io.temporal.workflow.Workflow;
+import java.net.Socket;
 import java.util.UUID;
 
 public class PaymentService {
@@ -30,5 +31,20 @@ public class PaymentService {
     // context. Temporal runs the callback exactly once and replays its recorded result
     // thereafter, so the value is stable across replay despite being non-deterministic.
     return Workflow.sideEffect(String.class, () -> UUID.randomUUID().toString());
+  }
+
+  public String fetchAccountTier() {
+    // Intentional WoGu demo violation (WG011): unlike recordAuditId() above,
+    // Workflow.sideEffect() does not make I/O safe. The callback still runs synchronously
+    // on the workflow thread, with no Activity-style timeout, retry, or heartbeat behind
+    // it, so a real network call here is an availability hazard even though it's "only"
+    // reachable from inside a side effect.
+    return Workflow.sideEffect(String.class, () -> {
+      try (Socket socket = new Socket("pricing.example.com", 443)) {
+        return "gold";
+      } catch (Exception e) {
+        return "default";
+      }
+    });
   }
 }

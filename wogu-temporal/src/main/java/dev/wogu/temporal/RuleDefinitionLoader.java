@@ -83,6 +83,7 @@ final class RuleDefinitionLoader {
         stringList(data, "methods"),
         stringList(data, "constructors"),
         stringList(data, "suppressedContexts"),
+        stringList(data, "requiredContexts"),
         stringList(data, "tags"));
   }
 

@@ -10,13 +10,13 @@ import org.junit.jupiter.api.Test;
 class RuleRegistryTest {
 
   @Test
-  void loadsExactlyWG001ThroughWG010FromTheClasspath() {
+  void loadsExactlyWG001ThroughWG011FromTheClasspath() {
     List<TemporalRule> rules = RuleRegistry.loadDeclarativeRules(getClass().getClassLoader());
 
     assertThat(rules)
         .extracting(rule -> rule.metadata().id())
         .containsExactlyInAnyOrder(
-            "WG001", "WG002", "WG003", "WG004", "WG005", "WG006", "WG007", "WG008", "WG009", "WG010");
+            "WG001", "WG002", "WG003", "WG004", "WG005", "WG006", "WG007", "WG008", "WG009", "WG010", "WG011");
   }
 
   @Test
@@ -43,6 +43,7 @@ class RuleRegistryTest {
             List.of(),
             List.of(),
             List.of(),
+            List.of(),
             List.of());
 
     assertThatThrownBy(() -> RuleRegistry.create(unknownType))
@@ -66,6 +67,7 @@ class RuleRegistryTest {
             "docs/rules/WG050.md",
             "Example replacement",
             List.of("java.util.UUID.randomUUID"),
+            List.of(),
             List.of(),
             List.of(),
             List.of());

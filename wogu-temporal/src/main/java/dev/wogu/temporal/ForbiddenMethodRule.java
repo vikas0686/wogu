@@ -21,7 +21,9 @@ import java.util.stream.Stream;
  * or more specific methods (via {@code methods}) and/or construction of one or more
  * specific classes (via {@code constructors}), listed in a {@link RuleDefinition}, except
  * where reachable only from a suppressed {@link ExecutionContext} (via
- * {@code suppressedContexts}).
+ * {@code suppressedContexts}) — or, for a rule like WG011 that only applies inside a
+ * specific context, kept only where reachable from a required one (via
+ * {@code requiredContexts}).
  *
  * <p>This is the generic engine behind WG001 ({@code UUID.randomUUID()}) through WG010
  * (thread/executor creation), and any future "flag this method call or this constructor"
@@ -39,6 +41,7 @@ final class ForbiddenMethodRule implements TemporalRule {
   private final String message;
   private final String suggestedFix;
   private final Set<ExecutionContext> suppressedContexts;
+  private final Set<ExecutionContext> requiredContexts;
 
   ForbiddenMethodRule(RuleDefinition definition) {
     this.metadata = definition.toRule();
@@ -51,6 +54,8 @@ final class ForbiddenMethodRule implements TemporalRule {
     this.suggestedFix = definition.replacement();
     this.suppressedContexts =
         definition.suppressedContexts().stream().map(ForbiddenMethodRule::toExecutionContext).collect(Collectors.toUnmodifiableSet());
+    this.requiredContexts =
+        definition.requiredContexts().stream().map(ForbiddenMethodRule::toExecutionContext).collect(Collectors.toUnmodifiableSet());
   }
 
   @Override
@@ -75,7 +80,8 @@ final class ForbiddenMethodRule implements TemporalRule {
         suggestedFix,
         activityBoundary,
         contextEntryPoints,
-        suppressedContexts);
+        suppressedContexts,
+        requiredContexts);
   }
 
   /**

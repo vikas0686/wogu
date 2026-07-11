@@ -1,0 +1,39 @@
+id: WG011
+type: forbidden-method
+title: I/O or blocking calls inside Workflow.sideEffect()
+category: Determinism
+severity: ERROR
+engine: Temporal Java SDK
+since: 1.0.0
+documentation: https://github.com/vikas0686/wogu/tree/main/docs/rules/WG011.md
+
+description: >-
+  Workflow.sideEffect()/mutableSideEffect() exist to let a workflow perform a quick,
+  local, non-deterministic computation once and have Temporal record the result for
+  replay — not to perform I/O. The callback still runs synchronously on the workflow
+  thread and blocks the workflow task; unlike an Activity, it isn't retried
+  independently, isn't heartbeated, and a failure inside it fails the whole workflow
+  task instead of being handled as a scoped, retryable error.
+
+replacement: >-
+  Move this call into an Activity with a real ActivityOptions timeout and retry
+  policy. Reserve sideEffect()/mutableSideEffect() for values — like a
+  locally-computed UUID or a coin-flip — that need no I/O at all.
+
+methods:
+  - java.net.http.HttpClient.send
+  - java.nio.file.Files.readAllBytes
+  - java.nio.file.Files.write
+  - java.sql.DriverManager.getConnection
+  - java.lang.reflect.Method.invoke
+
+constructors:
+  - java.net.Socket
+  - java.io.FileInputStream
+  - java.io.FileOutputStream
+  - java.io.FileReader
+  - java.io.FileWriter
+
+requiredContexts:
+  - SIDE_EFFECT
+  - MUTABLE_SIDE_EFFECT

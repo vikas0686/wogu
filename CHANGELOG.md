@@ -20,6 +20,20 @@ project adheres to [Semantic Versioning](https://semver.org/) (see
 
 ### Added
 
+- **WG011 — I/O or blocking calls inside Workflow.sideEffect()** (Determinism). Flags
+  network, file, JDBC, and reflection calls reachable from inside a
+  `Workflow.sideEffect(...)`/`Workflow.mutableSideEffect(...)` callback — a real
+  availability hazard, since the callback runs synchronously on the workflow thread with
+  no Activity-style retry or heartbeat. `RuleDefinition` gains an optional
+  `requiredContexts` field (the inverse of the existing `suppressedContexts`): where
+  `suppressedContexts` excludes matches found in a given `ExecutionContext`,
+  `requiredContexts` keeps only matches found in one, letting a rule apply *exclusively*
+  inside a context like `SIDE_EFFECT`/`MUTABLE_SIDE_EFFECT` instead of everywhere but it.
+  No call-graph engine changes were needed: `CallGraphAnalyzer`'s existing traversal
+  already finds calls nested inside a callback's lambda body and already tags each match's
+  `ExecutionContext` via `effectiveContext`, however many hops deep — WG011 is a plain
+  `forbidden-method` YAML rule reusing both exactly as WG001 already does for the opposite
+  filter. `docs/rules/WG011.md` documents it.
 - **WG004 — Math.random() inside Workflow**, **WG005 — java.util.Random inside
   Workflow**, **WG006 — ThreadLocalRandom inside Workflow**, **WG007 — SecureRandom
   inside Workflow**, **WG008 — System.getenv() inside Workflow**, **WG009 —

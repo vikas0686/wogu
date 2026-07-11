@@ -47,4 +47,17 @@ public class PaymentService {
       }
     });
   }
+
+  public double refreshCachedBalance() {
+    // Intentional WoGu demo violation (WG012): CachedBalance (see CachedBalance.java) has
+    // no equals()/hashCode() override, so updateFunction's !oldValue.equals(newValue) is
+    // always true regardless of whether the balance actually changed, and every call
+    // appends a new history event.
+    CachedBalance balance = Workflow.mutableSideEffect(
+        "balance",
+        CachedBalance.class,
+        (oldValue, newValue) -> !oldValue.equals(newValue),
+        () -> new CachedBalance(100.0));
+    return balance.amount;
+  }
 }

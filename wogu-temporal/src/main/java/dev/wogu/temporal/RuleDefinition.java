@@ -44,6 +44,10 @@ import java.util.Objects;
  *     exists specifically to flag I/O reachable only from inside a
  *     {@code Workflow.sideEffect(...)} callback, needs this: {@code suppressedContexts}
  *     alone can only exclude a context, never require one.
+ * @param valueTypeArgumentIndex for {@code mutable-side-effect-equality} rules (see
+ *     {@link dev.wogu.temporal.callgraph.ValueBasedEqualityArgumentTarget}): 0-based index
+ *     of the {@code Class<T>} argument, on the single method named in {@link #methods()},
+ *     whose resolved type must have real value-based equality; {@code null} for other types
  * @param tags free-form labels, reserved for future use (not yet rendered anywhere)
  */
 record RuleDefinition(
@@ -61,6 +65,7 @@ record RuleDefinition(
     List<String> constructors,
     List<String> suppressedContexts,
     List<String> requiredContexts,
+    Integer valueTypeArgumentIndex,
     List<String> tags) {
 
   RuleDefinition {

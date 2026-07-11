@@ -26,6 +26,7 @@ class RuleDefinitionTest {
         List.of(),
         List.of(),
         List.of(),
+        null,
         List.of());
   }
 

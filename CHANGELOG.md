@@ -20,6 +20,27 @@ project adheres to [Semantic Versioning](https://semver.org/) (see
 
 ### Added
 
+- **WG012 — MutableSideEffect with reference-equality value type** (Determinism). Flags
+  `Workflow.mutableSideEffect(id, valueClass, updateFunction, func)` calls whose value type
+  relies on inherited, identity-based `Object.equals()` — since `func` constructs a new
+  instance every call, `equals()` never reports "unchanged," so every call appends a new
+  history event regardless of whether the logical value actually changed. This is WoGu's
+  first genuinely new declarative rule *type*: `mutable-side-effect-equality`, alongside
+  the existing `forbidden-method`. Unlike every prior rule, the violation isn't "this call
+  happened" but "this call happened with an argument whose *resolved type* lacks value
+  equality," so `RuleDefinition` gains a `valueTypeArgumentIndex` field, and a new
+  `ValueBasedEqualityArgumentTarget` (`wogu-temporal.callgraph`) inspects the named
+  argument's `Class<T>` literal via the symbol solver — treating a Java record, a type with
+  its own or an inherited non-`Object` `equals()`, or an unresolvable type (a dependency
+  outside WoGu's own classpath) all as safe, the same false-negative-preferring default
+  every other rule uses for unresolvable code. `docs/rules/WG012.md` documents it.
+- Fixed `SourceRootParser` silently failing to parse `record` declarations and
+  pattern-matching `instanceof` — both valid since Java 16, and routine in code written
+  against this project's own Java 17 baseline — because its `ParserConfiguration` never set
+  a `LanguageLevel` and fell back to JavaParser's more conservative default. Every rule's
+  analysis was silently incomplete against any file using either construct; both
+  `ParserConfiguration` instances (the main one, and the one `JavaParserTypeSolver` uses
+  internally for cross-file resolution) now request `JAVA_17` explicitly.
 - **WG011 — I/O or blocking calls inside Workflow.sideEffect()** (Determinism). Flags
   network, file, JDBC, and reflection calls reachable from inside a
   `Workflow.sideEffect(...)`/`Workflow.mutableSideEffect(...)` callback — a real

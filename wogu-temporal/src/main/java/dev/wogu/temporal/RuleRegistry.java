@@ -22,7 +22,9 @@ import java.util.function.Function;
 final class RuleRegistry {
 
   private static final Map<String, Function<RuleDefinition, TemporalRule>> FACTORIES_BY_TYPE =
-      Map.of("forbidden-method", ForbiddenMethodRule::new);
+      Map.of(
+          "forbidden-method", ForbiddenMethodRule::new,
+          "mutable-side-effect-equality", MutableSideEffectEqualityRule::new);
 
   private RuleRegistry() {}
 

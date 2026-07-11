@@ -41,7 +41,10 @@ final class SourceRootParser {
   private SourceRootParser() {}
 
   static List<CompilationUnit> parse(List<Path> sourceRoots) {
-    ParserConfiguration configuration = new ParserConfiguration().setSymbolResolver(symbolResolverFor(sourceRoots));
+    ParserConfiguration configuration =
+        new ParserConfiguration()
+            .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+            .setSymbolResolver(symbolResolverFor(sourceRoots));
 
     List<CompilationUnit> units = new ArrayList<>();
     for (Path root : sourceRoots) {
@@ -78,7 +81,10 @@ final class SourceRootParser {
     // .resolve() call happens, by which point every type solver has been added.
     CombinedTypeSolver typeSolver = new CombinedTypeSolver();
     JavaSymbolSolver symbolSolver = new JavaSymbolSolver(typeSolver);
-    ParserConfiguration typeSolvingConfiguration = new ParserConfiguration().setSymbolResolver(symbolSolver);
+    ParserConfiguration typeSolvingConfiguration =
+        new ParserConfiguration()
+            .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+            .setSymbolResolver(symbolSolver);
 
     typeSolver.add(new ReflectionTypeSolver());
     for (Path root : sourceRoots) {

@@ -33,11 +33,12 @@ class TemporalWorkflowValidatorTest {
   }
 
   @Test
-  void declaresWG001ThroughWG011AsItsRules() {
+  void declaresWG001ThroughWG012AsItsRules() {
     assertThat(validator.rules())
         .extracting(Rule::id)
         .containsExactlyInAnyOrder(
-            "WG001", "WG002", "WG003", "WG004", "WG005", "WG006", "WG007", "WG008", "WG009", "WG010", "WG011");
+            "WG001", "WG002", "WG003", "WG004", "WG005", "WG006", "WG007", "WG008", "WG009", "WG010", "WG011",
+            "WG012");
   }
 
   @Test

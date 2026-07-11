@@ -23,11 +23,12 @@ import java.util.stream.Stream;
  *
  * <p>Parses the project's source once, scans it for workflow implementation classes once,
  * builds one shared {@link CallGraphAnalyzer}, and then evaluates every {@link TemporalRule}
- * against that shared state. Most rules today are declarative: {@link RuleRegistry} loads
- * one {@link TemporalRule} per YAML definition under {@code src/main/resources/rules}
- * (currently WG001–WG003, all {@code forbidden-method} rules), so adding one of those
- * requires no change here at all. {@link #CUSTOM_RULES} is the (currently empty) list for
- * future hand-written {@link CustomRule} subclasses that need real analysis logic.
+ * against that shared state. Every rule today is declarative: {@link RuleRegistry} loads
+ * one {@link TemporalRule} per YAML definition under {@code src/main/resources/rules}, so
+ * adding one requires no change here at all. {@link #CUSTOM_RULES} is the (currently empty)
+ * list for future hand-written {@link CustomRule} subclasses that need real analysis logic
+ * beyond what a declarative rule type (see {@link RuleRegistry#FACTORIES_BY_TYPE}) can
+ * express.
  */
 public final class TemporalWorkflowValidator implements WorkflowValidator {
 

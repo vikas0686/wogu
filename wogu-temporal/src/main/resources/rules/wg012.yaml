@@ -1,0 +1,27 @@
+id: WG012
+type: mutable-side-effect-equality
+title: MutableSideEffect with reference-equality value type
+category: Determinism
+severity: WARNING
+engine: Temporal Java SDK
+since: 1.0.0
+documentation: https://github.com/vikas0686/wogu/tree/main/docs/rules/WG012.md
+
+description: >-
+  Workflow.mutableSideEffect()'s updateFunction only skips recording a new history
+  event when it reports the value as unchanged. A value type that relies on
+  inherited, identity-based Object.equals() is never equal to a freshly
+  constructed instance, even when its fields are identical, so every call
+  appends a new MarkerRecorded event to history regardless of whether the
+  logical value actually changed.
+
+replacement: >-
+  Use a primitive, a record, or a type with a proper value-based
+  equals()/hashCode() for the mutableSideEffect value type, or supply an
+  updateFunction that explicitly compares the fields that matter instead of
+  relying on equals().
+
+methods:
+  - io.temporal.workflow.Workflow.mutableSideEffect
+
+valueTypeArgumentIndex: 1

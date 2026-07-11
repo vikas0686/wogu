@@ -84,6 +84,7 @@ final class RuleDefinitionLoader {
         stringList(data, "constructors"),
         stringList(data, "suppressedContexts"),
         stringList(data, "requiredContexts"),
+        optionalInt(data, "valueTypeArgumentIndex"),
         stringList(data, "tags"));
   }
 
@@ -113,6 +114,11 @@ final class RuleDefinitionLoader {
       return List.of();
     }
     return ((List<Object>) value).stream().map(Object::toString).toList();
+  }
+
+  private static Integer optionalInt(Map<String, Object> data, String key) {
+    Object value = data.get(key);
+    return value == null ? null : Integer.valueOf(value.toString());
   }
 
   private List<String> listYamlResourceNames() {

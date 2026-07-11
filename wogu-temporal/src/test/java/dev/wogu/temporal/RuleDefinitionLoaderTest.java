@@ -169,6 +169,53 @@ class RuleDefinitionLoaderTest {
   }
 
   @Test
+  void parsesValueTypeArgumentIndexWhenPresent() {
+    RuleDefinition definition =
+        loader.parse(
+            """
+            id: WG012
+            type: mutable-side-effect-equality
+            title: Example Rule
+            category: Determinism
+            severity: WARNING
+            engine: Temporal Java SDK
+            since: 1.0.0
+            documentation: docs/rules/WG012.md
+            description: Example description.
+            replacement: Example replacement.
+            methods:
+              - io.temporal.workflow.Workflow.mutableSideEffect
+            valueTypeArgumentIndex: 1
+            """,
+            "test.yaml");
+
+    assertThat(definition.valueTypeArgumentIndex()).isEqualTo(1);
+  }
+
+  @Test
+  void defaultsValueTypeArgumentIndexToNullWhenAbsent() {
+    RuleDefinition definition =
+        loader.parse(
+            """
+            id: WG900
+            type: forbidden-method
+            title: Example Rule
+            category: Determinism
+            severity: ERROR
+            engine: Temporal Java SDK
+            since: 0.2.0
+            documentation: docs/rules/WG900.md
+            description: Example description.
+            replacement: Example replacement.
+            methods:
+              - java.util.UUID.randomUUID
+            """,
+            "test.yaml");
+
+    assertThat(definition.valueTypeArgumentIndex()).isNull();
+  }
+
+  @Test
   void rejectsADefinitionMissingARequiredField() {
     String missingSeverity =
         """
@@ -205,7 +252,14 @@ class RuleDefinitionLoaderTest {
     assertThat(definitions)
         .extracting(RuleDefinition::id)
         .containsExactlyInAnyOrder(
-            "WG001", "WG002", "WG003", "WG004", "WG005", "WG006", "WG007", "WG008", "WG009", "WG010", "WG011");
-    assertThat(definitions).allSatisfy(definition -> assertThat(definition.type()).isEqualTo("forbidden-method"));
+            "WG001", "WG002", "WG003", "WG004", "WG005", "WG006", "WG007", "WG008", "WG009", "WG010", "WG011",
+            "WG012");
+    assertThat(definitions)
+        .filteredOn(definition -> !definition.id().equals("WG012"))
+        .allSatisfy(definition -> assertThat(definition.type()).isEqualTo("forbidden-method"));
+    assertThat(definitions)
+        .filteredOn(definition -> definition.id().equals("WG012"))
+        .singleElement()
+        .satisfies(definition -> assertThat(definition.type()).isEqualTo("mutable-side-effect-equality"));
   }
 }

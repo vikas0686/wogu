@@ -19,12 +19,13 @@
     calls into four service classes under com.example.wogu.sample.services, each grouped by
     the kind of non-determinism it demonstrates: PaymentService (UUID.randomUUID() for
     WG001, Thread.sleep() for WG002, System.currentTimeMillis() for WG003, a network call
-    inside Workflow.sideEffect() for WG011), RandomnessService (Math.random() for WG004;
-    new Random()/nextInt() for WG005; ThreadLocalRandom.current() for WG006; new
+    inside Workflow.sideEffect() for WG011, a Workflow.mutableSideEffect() value type with
+    no equals() override for WG012), RandomnessService (Math.random() for WG004; new
+    Random()/nextInt() for WG005; ThreadLocalRandom.current() for WG006; new
     SecureRandom()/nextBytes() for WG007), ConfigurationService (System.getenv() for WG008,
     System.getProperty() for WG009), and ConcurrencyService
     (Executors.newFixedThreadPool() for WG010). 'mvn verify' intentionally fails here and
-    writes target/wogu/index.html showing all thirteen violations (WG005 and WG007 each
+    writes target/wogu/index.html showing all fourteen violations (WG005 and WG007 each
     report twice: once for the constructor, once for the instance method called on it).
 
     PaymentWorkflowImpl also calls a real Activity (PaymentActivityImpl, via its
@@ -41,7 +42,10 @@
     shows the other side of that same coin: WG011 fires precisely because the call is inside
     a side effect, since sideEffect() makes I/O safe from determinism problems but not from
     the availability problems of running unretried, unbounded network calls on the workflow
-    thread.
+    thread. PaymentService.refreshCachedBalance() demonstrates a different Workflow API
+    entirely: mutableSideEffect()'s updateFunction depends on CachedBalance.equals(), which
+    is never overridden, so WG012 fires because every call is reported as "changed" even
+    when the underlying balance hasn't moved.
 
     This module is intentionally excluded from the repo's default Maven reactor (see the
     root pom's 'with-samples' profile), since it fails by design. Run it explicitly:

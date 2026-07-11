@@ -243,7 +243,7 @@ itself; see [VERSIONING.md](VERSIONING.md)).
 
 ## Project Status
 
-WoGu is in active development and the first public release (**v0.1.0**) is available on Maven Central.
+WoGu is in active development and the first public release (**v1.0.0**) is available on Maven Central.
 
 ### Current capabilities
 
@@ -265,11 +265,11 @@ WoGu is in active development and the first public release (**v0.1.0**) is avail
 
 ## Roadmap
 
-- **v0.1** ✅ Temporal Determinism Rules (WG001–WG010) — shipped, published to Maven Central
-- **v0.2** ⬜ Activity Rules
-- **v0.3** ⬜ Versioning Rules
-- **v0.4** ⬜ Performance Rules
-- **v1.0** ⬜ 50+ Rules across Determinism, Activities, Versioning, Signals, Updates, Performance, Best Practices, Security, and Organization Policies
+- **v1.0** ✅ Temporal Determinism Rules (WG001–WG010) — shipped, published to Maven Central
+- **v1.1** ⬜ Activity Rules
+- **v1.2** ⬜ Versioning Rules
+- **v1.3** ⬜ Performance Rules
+- **Beyond** ⬜ 50+ Rules across Determinism, Activities, Versioning, Signals, Updates, Performance, Best Practices, Security, and Organization Policies
 
 No dates are committed yet — see [Project Status](#project-status) above for where
 things stand today.

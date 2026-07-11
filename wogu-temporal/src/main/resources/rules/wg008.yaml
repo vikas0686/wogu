@@ -4,7 +4,7 @@ title: System.getenv() inside Workflow
 category: Determinism
 severity: ERROR
 engine: Temporal Java SDK
-since: 0.3.0
+since: 1.0.0
 documentation: https://github.com/vikas0686/wogu/tree/main/docs/rules/WG008.md
 
 description: >-

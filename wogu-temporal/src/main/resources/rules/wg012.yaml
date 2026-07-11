@@ -17,9 +17,9 @@ description: >-
 
 replacement: >-
   Use a primitive, a record, or a type with a proper value-based
-  equals()/hashCode() for the mutableSideEffect value type, or supply an
-  updateFunction that explicitly compares the fields that matter instead of
-  relying on equals().
+  equals()/hashCode() for the mutableSideEffect value type. This rule checks the
+  value type's resolved equals(), not the updateFunction, so rewriting only the
+  updateFunction's comparison logic will not suppress this diagnostic.
 
 methods:
   - io.temporal.workflow.Workflow.mutableSideEffect

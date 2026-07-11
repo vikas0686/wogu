@@ -105,6 +105,7 @@ public final class ValueBasedEqualityArgumentTarget implements CallTarget {
               method ->
                   method.getName().equals("equals")
                       && method.getNoParams() == 1
+                      && method.getParamType(0).describe().equals("java.lang.Object")
                       && !method.declaringType().getQualifiedName().equals("java.lang.Object"));
     } catch (RuntimeException e) {
       return true;

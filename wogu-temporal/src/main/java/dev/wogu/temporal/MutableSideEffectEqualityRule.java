@@ -7,10 +7,12 @@ import dev.wogu.api.Violation;
 import dev.wogu.temporal.callgraph.CallGraphAnalyzer;
 import dev.wogu.temporal.callgraph.CallTarget;
 import dev.wogu.temporal.callgraph.ContextEntryPoint;
+import dev.wogu.temporal.callgraph.ExecutionContext;
 import dev.wogu.temporal.callgraph.ValueBasedEqualityArgumentTarget;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * The {@code mutable-side-effect-equality} declarative rule type: flags a call to the
@@ -25,8 +27,10 @@ import java.util.function.Predicate;
  * {@code methods: [the one method]}, and {@code valueTypeArgumentIndex} under
  * {@code src/main/resources/rules}; this class builds the matching
  * {@link ValueBasedEqualityArgumentTarget} and reuses {@link TemporalRuleSupport} for the
- * actual call-graph traversal and violation building, exactly like {@link ForbiddenMethodRule}
- * does for its own shape.
+ * actual call-graph traversal, suppression, and violation building, exactly like
+ * {@link ForbiddenMethodRule} does for its own shape — including honoring the same
+ * {@code suppressedContexts}/{@code requiredContexts} fields, via the same
+ * {@link ForbiddenMethodRule#toExecutionContext} conversion.
  */
 final class MutableSideEffectEqualityRule implements TemporalRule {
 
@@ -34,6 +38,8 @@ final class MutableSideEffectEqualityRule implements TemporalRule {
   private final CallTarget target;
   private final String message;
   private final String suggestedFix;
+  private final Set<ExecutionContext> suppressedContexts;
+  private final Set<ExecutionContext> requiredContexts;
 
   MutableSideEffectEqualityRule(RuleDefinition definition) {
     this.metadata = definition.toRule();
@@ -51,6 +57,10 @@ final class MutableSideEffectEqualityRule implements TemporalRule {
         new ValueBasedEqualityArgumentTarget(definition.methods().get(0), definition.valueTypeArgumentIndex());
     this.message = definition.description();
     this.suggestedFix = definition.replacement();
+    this.suppressedContexts =
+        definition.suppressedContexts().stream().map(ForbiddenMethodRule::toExecutionContext).collect(Collectors.toUnmodifiableSet());
+    this.requiredContexts =
+        definition.requiredContexts().stream().map(ForbiddenMethodRule::toExecutionContext).collect(Collectors.toUnmodifiableSet());
   }
 
   @Override
@@ -75,7 +85,7 @@ final class MutableSideEffectEqualityRule implements TemporalRule {
         suggestedFix,
         activityBoundary,
         contextEntryPoints,
-        Set.of(),
-        Set.of());
+        suppressedContexts,
+        requiredContexts);
   }
 }

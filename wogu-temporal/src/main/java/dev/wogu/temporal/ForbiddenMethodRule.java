@@ -100,7 +100,12 @@ final class ForbiddenMethodRule implements TemporalRule {
     return new StaticMethodCallTarget(className, methodName);
   }
 
-  private static ExecutionContext toExecutionContext(String name) {
+  /**
+   * Package-private (not {@code private}) so {@link MutableSideEffectEqualityRule} can
+   * reuse this same {@code ExecutionContext} name-to-constant conversion for its own
+   * {@code suppressedContexts}/{@code requiredContexts} instead of duplicating it.
+   */
+  static ExecutionContext toExecutionContext(String name) {
     try {
       return ExecutionContext.valueOf(name);
     } catch (IllegalArgumentException e) {

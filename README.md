@@ -1,6 +1,6 @@
 # WoGu — Workflow Guard
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.vikas0686/wogu-maven-plugin.svg)](https://search.maven.org/artifact/io.github.vikas0686/wogu-maven-plugin)
+[![Maven Central](https://img.shields.io/maven-central/v/dev.wogu/wogu-maven-plugin.svg)](https://search.maven.org/artifact/dev.wogu/wogu-maven-plugin)
 [![GitHub release](https://img.shields.io/github/v/release/vikas0686/wogu?include_prereleases)](https://github.com/vikas0686/wogu/releases)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Java 17+](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://openjdk.org/projects/jdk/17/)
@@ -61,15 +61,15 @@ mvn -f sample-temporal-project verify   # fails by design, writes the report abo
 
 ## Installation
 
-WoGu is published on Maven Central under `io.github.vikas0686`.
+WoGu is published on Maven Central under `dev.wogu`.
 
 ### Maven
 
 ```xml
 <plugin>
-  <groupId>io.github.vikas0686</groupId>
+  <groupId>dev.wogu</groupId>
   <artifactId>wogu-maven-plugin</artifactId>
-  <version>0.1.0</version>
+  <version>1.0.0</version>
   <executions>
     <execution>
       <goals>
@@ -87,7 +87,7 @@ extra repository configuration is needed; it resolves straight from Maven Centra
 
 ```kotlin
 plugins {
-  id("io.github.vikas0686.wogu") version "0.1.0"
+  id("dev.wogu") version "1.0.0"
 }
 ```
 

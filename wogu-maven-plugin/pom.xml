@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>io.github.vikas0686</groupId>
+    <groupId>dev.wogu</groupId>
     <artifactId>wogu-parent</artifactId>
     <version>${revision}</version>
   </parent>
@@ -40,15 +40,15 @@
     <!-- WoGu engine, bundled with the plugin so validators are discoverable at runtime
          without requiring consumers to declare these as project dependencies. -->
     <dependency>
-      <groupId>io.github.vikas0686</groupId>
+      <groupId>dev.wogu</groupId>
       <artifactId>wogu-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.github.vikas0686</groupId>
+      <groupId>dev.wogu</groupId>
       <artifactId>wogu-temporal</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.github.vikas0686</groupId>
+      <groupId>dev.wogu</groupId>
       <artifactId>wogu-report</artifactId>
     </dependency>
     <dependency>

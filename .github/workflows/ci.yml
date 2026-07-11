@@ -28,7 +28,7 @@ jobs:
 
       - name: Install WoGu jars to the local Maven repository
         run: mvn -B install -DskipTests
-        # Needed so wogu-gradle-plugin can resolve io.wogu:* from mavenLocal();
+        # Needed so wogu-gradle-plugin can resolve dev.wogu:* from mavenLocal();
         # see CONTRIBUTING.md.
 
       - name: Verify the sample project fails as designed

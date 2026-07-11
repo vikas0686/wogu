@@ -5,7 +5,7 @@ plugins {
     id("com.gradle.plugin-publish") version "1.3.1"
 }
 
-group = "io.github.vikas0686"
+group = "dev.wogu"
 // wogu-gradle-plugin is a separate Gradle build (not a Maven module), but it's still
 // released in lockstep with the Maven reactor (see VERSIONING.md), so it reads the same
 // single source of truth instead of duplicating the version here: the <revision>
@@ -25,7 +25,7 @@ java {
 }
 
 repositories {
-    // The io.github.vikas0686:* artifacts this build depends on (below) are resolved from
+    // The dev.wogu:* artifacts this build depends on (below) are resolved from
     // the local Maven repository first: CI and CONTRIBUTING.md's build steps run
     // 'mvn install' right before this build, and a not-yet-released version (e.g. while
     // preparing a release, or any commit between releases) only ever exists there, never
@@ -38,10 +38,10 @@ repositories {
 val woguVersion = version.toString()
 
 dependencies {
-    implementation("io.github.vikas0686:wogu-api:$woguVersion")
-    implementation("io.github.vikas0686:wogu-core:$woguVersion")
-    implementation("io.github.vikas0686:wogu-temporal:$woguVersion")
-    implementation("io.github.vikas0686:wogu-report:$woguVersion")
+    implementation("dev.wogu:wogu-api:$woguVersion")
+    implementation("dev.wogu:wogu-core:$woguVersion")
+    implementation("dev.wogu:wogu-temporal:$woguVersion")
+    implementation("dev.wogu:wogu-report:$woguVersion")
 
     testImplementation(platform("org.junit:junit-bom:5.12.2"))
     testImplementation("org.junit.jupiter:junit-jupiter")
@@ -57,8 +57,8 @@ gradlePlugin {
 
     plugins {
         create("wogu") {
-            id = "io.github.vikas0686.wogu"
-            implementationClass = "io.wogu.gradle.WoguPlugin"
+            id = "dev.wogu"
+            implementationClass = "dev.wogu.gradle.WoguPlugin"
 
             displayName = "WoGu Workflow Guard"
             description = "Static analysis and workflow quality gates."

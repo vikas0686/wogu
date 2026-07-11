@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>io.github.vikas0686</groupId>
+  <groupId>dev.wogu</groupId>
   <artifactId>wogu-parent</artifactId>
   <version>${revision}</version>
   <packaging>pom</packaging>
@@ -67,7 +67,7 @@
          a new version; see RELEASING.md. flatten-maven-plugin (below) rewrites this
          placeholder to a literal value in the pom that actually gets installed/deployed,
          since a placeholder left in a published pom would be meaningless to consumers. -->
-    <revision>0.1.2</revision>
+    <revision>1.0.0</revision>
 
     <!-- Build baseline -->
     <maven.compiler.release>17</maven.compiler.release>
@@ -113,22 +113,22 @@
     <dependencies>
       <!-- Inter-module dependencies -->
       <dependency>
-        <groupId>io.github.vikas0686</groupId>
+        <groupId>dev.wogu</groupId>
         <artifactId>wogu-api</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.github.vikas0686</groupId>
+        <groupId>dev.wogu</groupId>
         <artifactId>wogu-core</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.github.vikas0686</groupId>
+        <groupId>dev.wogu</groupId>
         <artifactId>wogu-temporal</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.github.vikas0686</groupId>
+        <groupId>dev.wogu</groupId>
         <artifactId>wogu-report</artifactId>
         <version>${project.version}</version>
       </dependency>

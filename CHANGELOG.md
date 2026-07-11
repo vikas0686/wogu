@@ -8,6 +8,16 @@ project adheres to [Semantic Versioning](https://semver.org/) (see
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: Maven groupId moved from `io.github.vikas0686` to `dev.wogu`** (domain-verified
+  against `wogu.dev` on Sonatype Central), and the Gradle plugin id moved from
+  `io.github.vikas0686.wogu` to `dev.wogu` (domain-verified on the Gradle Plugin Portal).
+  Artifact ids are unchanged (`wogu-api`, `wogu-core`, `wogu-temporal`, `wogu-report`,
+  `wogu-maven-plugin`). Versions through 0.1.2 remain published under the old coordinates
+  on Maven Central (artifacts there are immutable); consumers must update their
+  `groupId`/plugin `id` to pick up 1.0.0 and later.
+
 ### Added
 
 - **WG004 — Math.random() inside Workflow**, **WG005 — java.util.Random inside
@@ -18,7 +28,7 @@ project adheres to [Semantic Versioning](https://semver.org/) (see
   `ForbiddenMethodRule`, reusing the same call-graph engine and `TemporalRuleSupport`
   plumbing as WG001–WG003 — no new Java class per rule, no new traversal logic, no report
   changes. `docs/rules/WG004.md` through `WG010.md` document each one.
-- `io.wogu.temporal.callgraph.ConstructorCallTarget`: a `CallTarget` for "this is a `new
+- `dev.wogu.temporal.callgraph.ConstructorCallTarget`: a `CallTarget` for "this is a `new
   SomeClass(...)` call" (WG005's `new Random()`, WG007's `new SecureRandom()`, WG010's
   `new Thread()`), sharing its class-name-matching rules with `StaticMethodCallTarget` via
   a new package-private `QualifiedClassNameMatcher` helper so the two never disagree about
@@ -35,7 +45,7 @@ project adheres to [Semantic Versioning](https://semver.org/) (see
   a `Predicate<MethodDeclaration> traversalBoundary`: a method the predicate matches is
   treated as opaque — neither scanned for matches nor recursed into — while
   `CallGraphAnalyzer` itself stays engine-agnostic (it has no idea what an Activity is,
-  only that some methods are marked out of bounds). New `io.wogu.temporal.ActivityAwareness`
+  only that some methods are marked out of bounds). New `dev.wogu.temporal.ActivityAwareness`
   supplies that predicate for Temporal: a method counts as Activity-owned if it (or its
   declaring class) carries `@ActivityMethod`/`@ActivityInterface`, or its declaring class
   implements an `@ActivityInterface`-annotated interface. `TemporalWorkflowValidator`
@@ -62,7 +72,7 @@ project adheres to [Semantic Versioning](https://semver.org/) (see
   strongly-typed `RuleDefinition` — the only class in WoGu aware the format is YAML. New
   `RuleRegistry` maps a definition's `type` to the `TemporalRule` that executes it (a
   `Map`-based factory registry, today just `forbidden-method` → `ForbiddenMethodRule`).
-  New `RuleDefinition.toRule()` maps the common metadata fields onto `io.wogu.api.Rule`,
+  New `RuleDefinition.toRule()` maps the common metadata fields onto `dev.wogu.api.Rule`,
   shared by every declarative rule type. New `CustomRule` base class is the designed
   extension point for future rules that need real analysis logic instead of a
   method-call pattern (unused today). Adding another `forbidden-method` rule is now
@@ -81,13 +91,13 @@ project adheres to [Semantic Versioning](https://semver.org/) (see
   `Clock.systemDefaultZone()` reachable from a Temporal workflow entry point. Suggested
   fix: `Workflow.currentTimeMillis()`.
 - `docs/rules/WG002.md` and `docs/rules/WG003.md`, following the WG001.md template.
-- `io.wogu.temporal.callgraph.StaticMethodCallTarget`: a reusable `CallTarget` for "this
+- `dev.wogu.temporal.callgraph.StaticMethodCallTarget`: a reusable `CallTarget` for "this
   call is a specific class's specific static method" (qualified class name + method
   name), handling explicit imports, wildcard imports, `java.lang`'s no-import-needed
   classes (with correct handling of a shadowing import), fully qualified inline calls,
   and static imports. Used by all three rules; adding WG002/WG003 required no new
   AST-matching logic, only new instances of this class.
-- `io.wogu.temporal.TemporalRuleSupport`: the shared "for each workflow class, for each
+- `dev.wogu.temporal.TemporalRuleSupport`: the shared "for each workflow class, for each
   entry point, for each target, convert call-graph matches into `Violation`s" logic every
   call-graph-based rule needs, extracted so each rule's `evaluate()` is a one-liner
   instead of duplicating the loop and file-path relativization.
@@ -113,7 +123,7 @@ project adheres to [Semantic Versioning](https://semver.org/) (see
   enforces. `wogu-temporal`'s `UUIDRandomValidator` is replaced by
   `TemporalWorkflowValidator` (the registered validator) plus `UuidRandomUuidRule`
   (rule `WG001`).
-- **Call graph analysis.** New `io.wogu.temporal.callgraph.CallGraphAnalyzer` performs a
+- **Call graph analysis.** New `dev.wogu.temporal.callgraph.CallGraphAnalyzer` performs a
   depth-first traversal from a workflow entry-point method, following every call it can
   resolve to source elsewhere in the project, however many hops deep, and reports every
   call site matching a `CallTarget` with the full path from the entry point down to the
@@ -130,7 +140,7 @@ project adheres to [Semantic Versioning](https://semver.org/) (see
   Information" and additionally shows WoGu version, Java version, and build tool.
   Violations are rendered as detail cards (not table rows) showing the full call path,
   a teaching-style explanation of the rule, and the recommended fix.
-- **Console output.** New shared `io.wogu.core.ConsoleReportRenderer` (used by both
+- **Console output.** New shared `dev.wogu.core.ConsoleReportRenderer` (used by both
   plugins) prints a banner, a scan summary ("Found N workflow classes"), a checkmark/cross
   line per rule (with the rule's title shown on failure), violation counts grouped by
   severity, and the build status, replacing the previous plainer, validator-oriented log

@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>io.github.vikas0686</groupId>
+    <groupId>dev.wogu</groupId>
     <artifactId>wogu-parent</artifactId>
     <version>${revision}</version>
   </parent>
@@ -22,7 +22,7 @@
 
   <dependencies>
     <dependency>
-      <groupId>io.github.vikas0686</groupId>
+      <groupId>dev.wogu</groupId>
       <artifactId>wogu-api</artifactId>
     </dependency>
   </dependencies>

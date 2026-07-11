@@ -74,7 +74,7 @@ convention.
 
 # The call graph engine
 
-`io.wogu.temporal.callgraph.CallGraphAnalyzer` is reusable infrastructure, not a WG001-only
+`dev.wogu.temporal.callgraph.CallGraphAnalyzer` is reusable infrastructure, not a WG001-only
 scanner. Given an entry-point `MethodDeclaration` and a `CallTarget` (a match predicate
 like "is this call `UUID.randomUUID()`?"), it does a depth-first traversal following every
 method call it can resolve to source elsewhere in the project — however many hops — and
@@ -102,7 +102,7 @@ the class if none is annotated that way.
 
 For "flag this specific method call" rules (WG001–WG004, WG006, WG008, WG009 are all
 this shape), you never need a new `CallTarget` implementation:
-`io.wogu.temporal.callgraph.StaticMethodCallTarget` takes a qualified class name and
+`dev.wogu.temporal.callgraph.StaticMethodCallTarget` takes a qualified class name and
 method name and handles every way the call can be written (simple name + import,
 wildcard import, fully qualified inline, static import, `java.lang` classes needing no
 import at all unless shadowed), **and**, as a resolution-based fallback when none of
@@ -112,7 +112,7 @@ its declaring type is the target class. `ForbiddenMethodRule` builds one per ent
 rule definition's `methods` list (several, for a rule like WG003's eight time APIs).
 
 For "flag constructing this specific class" (WG005's `new Random()`, WG007's `new
-SecureRandom()`, WG010's `new Thread()`), `io.wogu.temporal.callgraph.ConstructorCallTarget`
+SecureRandom()`, WG010's `new Thread()`), `dev.wogu.temporal.callgraph.ConstructorCallTarget`
 is the equivalent for `ObjectCreationExpr` instead of `MethodCallExpr`, sharing its
 class-name-matching rules with `StaticMethodCallTarget` via the package-private
 `QualifiedClassNameMatcher` so the two never disagree about what counts as "this class."
@@ -120,7 +120,7 @@ class-name-matching rules with `StaticMethodCallTarget` via the package-private
 addition to any `methods` entries — a rule can declare both. Don't add a new `TemporalRule`
 type for "flag this constructor"; it's already covered by `forbidden-method`.
 
-`io.wogu.temporal.ActivityAwareness` is the traversal boundary every rule gets for free:
+`dev.wogu.temporal.ActivityAwareness` is the traversal boundary every rule gets for free:
 `CallGraphAnalyzer.findCallPaths` takes an optional `Predicate<MethodDeclaration>`
 (`traversalBoundary`), and `TemporalWorkflowValidator` computes one such predicate via
 `ActivityAwareness.activityBoundary(units)` — once per `validate()` call, not once per
@@ -206,7 +206,7 @@ mvn -f sample-temporal-project verify        # expected: BUILD FAILURE, report w
 mvn -Pwith-samples verify                    # from repo root; also expected to FAILURE
 
 # wogu-gradle-plugin is an independent Gradle build (not a Maven module) that resolves
-# io.wogu:* from mavenLocal(). After any change to a Maven module (including the root
+# dev.wogu:* from mavenLocal(). After any change to a Maven module (including the root
 # pom's dependencyManagement — reinstall it too, with -N, or dependents resolve stale
 # versions from ~/.m2):
 mvn clean install
@@ -244,21 +244,24 @@ mocks. If you touch `wogu-maven-plugin`, prefer testing through `WoguRunner` dir
 
 # Real project identity — no longer placeholders
 
-The Maven `groupId` (`io.github.vikas0686`) and repo URL (`github.com/vikas0686/wogu`)
-throughout the POMs and docs are the real, finalized coordinates, not scaffold
-placeholders — every module's `pom.xml`, the root `pom.xml`'s `<url>`/`<scm>`/
-`<issueManagement>`, and `docs/rules/*`'s GitHub links all agree on them. If you add a
-new Maven module or a new rule doc, use these same coordinates; don't reintroduce the
-old `io.wogu` / `github.com/wogu-project/wogu` placeholders from the initial scaffold.
+The Maven `groupId` is `dev.wogu` (domain-verified on Sonatype Central against
+`wogu.dev`, as of the 1.0.0 release — versions through 0.1.2 were published under the
+now-superseded `io.github.vikas0686` and remain on Central forever, immutable, but are
+not where new work happens). The repo URL (`github.com/vikas0686/wogu`) is unrelated to
+the groupId and unchanged. Every module's `pom.xml`, the root `pom.xml`'s `<url>`/`<scm>`/
+`<issueManagement>`, and `docs/rules/*`'s GitHub links all agree on the repo URL. If you
+add a new Maven module or a new rule doc, use `dev.wogu` as the groupId; don't
+reintroduce `io.github.vikas0686` or the older `dev.wogu` /
+`github.com/wogu-project/wogu` placeholders from the initial scaffold.
 
 The Gradle plugin (`wogu-gradle-plugin`) is a separate Gradle build with its own
-identity: its Gradle plugin id is `io.github.vikas0686.wogu` (the `io.github.*` form the
-Gradle Plugin Portal requires to verify ownership, same reasoning as the Maven
-`io.github.vikas0686` groupId), configured in `build.gradle.kts`'s `gradlePlugin { plugins
-{ create("wogu") { id = ... } } }` block — every place that applies the plugin (the
-functional tests, `WoguPlugin`'s javadoc example, `README.md`'s Gradle snippet) must use
-this exact id, or Gradle TestKit/consumers fail to find the plugin at all. Its own
-`group`/`version` in `build.gradle.kts` remain a different namespace from the Maven
-artifacts it depends on — only its `dependencies { implementation(...) }` coordinates
-and `woguVersion` need to track the Maven `groupId`/version above, since those resolve
-real jars from `mavenLocal()`.
+identity: its Gradle plugin id is `dev.wogu` (domain-verified on the Gradle Plugin
+Portal against `wogu.dev`, same reasoning as the Maven groupId), configured in
+`build.gradle.kts`'s `gradlePlugin { plugins { create("wogu") { id = ... } } }` block —
+every place that applies the plugin (the functional tests, `WoguPlugin`'s javadoc
+example, `README.md`'s Gradle snippet) must use this exact id, or Gradle
+TestKit/consumers fail to find the plugin at all. Its own `group`/`version` in
+`build.gradle.kts` happen to share the same `dev.wogu` value as the Maven groupId now,
+but conceptually remain a separate namespace — only its `dependencies {
+implementation(...) }` coordinates and `woguVersion` need to track the Maven
+`groupId`/version above, since those resolve real jars from `mavenLocal()`.

@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>io.github.vikas0686</groupId>
+    <groupId>dev.wogu</groupId>
     <artifactId>wogu-parent</artifactId>
     <version>${revision}</version>
   </parent>
@@ -54,7 +54,7 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>io.github.vikas0686</groupId>
+        <groupId>dev.wogu</groupId>
         <artifactId>wogu-maven-plugin</artifactId>
         <version>${project.version}</version>
         <executions>

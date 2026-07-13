@@ -24,7 +24,8 @@ final class RuleRegistry {
   private static final Map<String, Function<RuleDefinition, TemporalRule>> FACTORIES_BY_TYPE =
       Map.of(
           "forbidden-method", ForbiddenMethodRule::new,
-          "mutable-side-effect-equality", MutableSideEffectEqualityRule::new);
+          "mutable-side-effect-equality", MutableSideEffectEqualityRule::new,
+          "forbidden-catch-type", ForbiddenCatchTypeRule::new);
 
   private RuleRegistry() {}
 

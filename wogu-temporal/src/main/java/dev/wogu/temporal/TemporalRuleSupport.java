@@ -98,21 +98,43 @@ final class TemporalRuleSupport {
       List<ContextEntryPoint> contextEntryPoints,
       Set<ExecutionContext> suppressedContexts,
       Set<ExecutionContext> requiredContexts) {
-    List<Violation> violations = new ArrayList<>();
+    List<CallGraphMatch> matches = new ArrayList<>();
     for (ScannedWorkflowClass workflowClass : workflowClasses) {
       for (MethodDeclaration entryPoint : workflowClass.entryPoints()) {
         for (CallTarget target : targets) {
-          for (CallGraphMatch match : callGraph.findCallPaths(entryPoint, target, activityBoundary, contextEntryPoints)) {
-            if (suppressedContexts.contains(match.executionContext())) {
-              continue;
-            }
-            if (!requiredContexts.isEmpty() && !requiredContexts.contains(match.executionContext())) {
-              continue;
-            }
-            violations.add(toViolation(rule, context, match, message, suggestedFix));
-          }
+          matches.addAll(callGraph.findCallPaths(entryPoint, target, activityBoundary, contextEntryPoints));
         }
       }
+    }
+    return toViolations(matches, rule, context, message, suggestedFix, suppressedContexts, requiredContexts);
+  }
+
+  /**
+   * Filters {@code matches} down to the ones {@code suppressedContexts}/{@code requiredContexts}
+   * allow, and converts what's left into {@link Violation}s. Split out from
+   * {@link #findViolations(List, CallGraphAnalyzer, List, Rule, ValidationContext, String,
+   * String, Predicate, List, Set, Set)} so a rule whose matches don't come from
+   * {@link CallGraphAnalyzer#findCallPaths} at all — e.g. {@link ForbiddenCatchTypeRule}'s
+   * {@link CallGraphAnalyzer#findCaughtTypeMatches} — can still reuse the same
+   * suppression/required-context semantics and violation shape instead of duplicating them.
+   */
+  static List<Violation> toViolations(
+      List<CallGraphMatch> matches,
+      Rule rule,
+      ValidationContext context,
+      String message,
+      String suggestedFix,
+      Set<ExecutionContext> suppressedContexts,
+      Set<ExecutionContext> requiredContexts) {
+    List<Violation> violations = new ArrayList<>();
+    for (CallGraphMatch match : matches) {
+      if (suppressedContexts.contains(match.executionContext())) {
+        continue;
+      }
+      if (!requiredContexts.isEmpty() && !requiredContexts.contains(match.executionContext())) {
+        continue;
+      }
+      violations.add(toViolation(rule, context, match, message, suggestedFix));
     }
     return violations;
   }

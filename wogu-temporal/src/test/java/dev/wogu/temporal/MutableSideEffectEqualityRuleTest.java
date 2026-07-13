@@ -377,6 +377,7 @@ class MutableSideEffectEqualityRuleTest {
             List.of(),
             List.of("SIDE_EFFECT"),
             1,
+            List.of(),
             List.of());
     TemporalRule rule = new MutableSideEffectEqualityRule(definitionRequiringSideEffect);
 

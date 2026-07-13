@@ -10,14 +10,14 @@ import org.junit.jupiter.api.Test;
 class RuleRegistryTest {
 
   @Test
-  void loadsExactlyWG001ThroughWG012FromTheClasspath() {
+  void loadsExactlyWG001ThroughWG013FromTheClasspath() {
     List<TemporalRule> rules = RuleRegistry.loadDeclarativeRules(getClass().getClassLoader());
 
     assertThat(rules)
         .extracting(rule -> rule.metadata().id())
         .containsExactlyInAnyOrder(
             "WG001", "WG002", "WG003", "WG004", "WG005", "WG006", "WG007", "WG008", "WG009", "WG010", "WG011",
-            "WG012");
+            "WG012", "WG013");
   }
 
   @Test
@@ -25,12 +25,16 @@ class RuleRegistryTest {
     List<TemporalRule> rules = RuleRegistry.loadDeclarativeRules(getClass().getClassLoader());
 
     assertThat(rules)
-        .filteredOn(rule -> !rule.metadata().id().equals("WG012"))
+        .filteredOn(rule -> !rule.metadata().id().equals("WG012") && !rule.metadata().id().equals("WG013"))
         .allSatisfy(rule -> assertThat(rule).isInstanceOf(ForbiddenMethodRule.class));
     assertThat(rules)
         .filteredOn(rule -> rule.metadata().id().equals("WG012"))
         .singleElement()
         .isInstanceOf(MutableSideEffectEqualityRule.class);
+    assertThat(rules)
+        .filteredOn(rule -> rule.metadata().id().equals("WG013"))
+        .singleElement()
+        .isInstanceOf(ForbiddenCatchTypeRule.class);
   }
 
   @Test
@@ -52,6 +56,7 @@ class RuleRegistryTest {
             List.of(),
             List.of(),
             null,
+            List.of(),
             List.of());
 
     assertThatThrownBy(() -> RuleRegistry.create(unknownType))
@@ -79,6 +84,7 @@ class RuleRegistryTest {
             List.of(),
             List.of(),
             null,
+            List.of(),
             List.of());
 
     TemporalRule rule = RuleRegistry.create(definition);
@@ -108,6 +114,7 @@ class RuleRegistryTest {
             List.of(),
             List.of(),
             1,
+            List.of(),
             List.of());
 
     TemporalRule rule = RuleRegistry.create(definition);
@@ -138,6 +145,7 @@ class RuleRegistryTest {
             List.of(),
             List.of(),
             1,
+            List.of(),
             List.of());
 
     assertThatThrownBy(() -> RuleRegistry.create(zeroMethods))
@@ -165,11 +173,71 @@ class RuleRegistryTest {
             List.of(),
             List.of(),
             null,
+            List.of(),
             List.of());
 
     assertThatThrownBy(() -> RuleRegistry.create(noArgumentIndex))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("WG051")
         .hasMessageContaining("valueTypeArgumentIndex");
+  }
+
+  @Test
+  void createsAForbiddenCatchTypeRuleWithMetadataMatchingTheDefinition() {
+    RuleDefinition definition =
+        new RuleDefinition(
+            "WG052",
+            "forbidden-catch-type",
+            "Example Rule",
+            "Example description",
+            "Determinism",
+            "ERROR",
+            "Temporal Java SDK",
+            "0.2.0",
+            "docs/rules/WG052.md",
+            "Example replacement",
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of(),
+            null,
+            List.of("java.lang.Throwable"),
+            List.of());
+
+    TemporalRule rule = RuleRegistry.create(definition);
+    Rule metadata = rule.metadata();
+
+    assertThat(rule).isInstanceOf(ForbiddenCatchTypeRule.class);
+    assertThat(metadata.id()).isEqualTo("WG052");
+    assertThat(metadata.title()).isEqualTo("Example Rule");
+    assertThat(metadata.documentationReference()).isEqualTo("docs/rules/WG052.md");
+  }
+
+  @Test
+  void rejectsAForbiddenCatchTypeDefinitionWithNoCatchTypes() {
+    RuleDefinition noCatchTypes =
+        new RuleDefinition(
+            "WG052",
+            "forbidden-catch-type",
+            "Example Rule",
+            "Example description",
+            "Determinism",
+            "ERROR",
+            "Temporal Java SDK",
+            "0.2.0",
+            "docs/rules/WG052.md",
+            "Example replacement",
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of(),
+            null,
+            List.of(),
+            List.of());
+
+    assertThatThrownBy(() -> RuleRegistry.create(noCatchTypes))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("WG052")
+        .hasMessageContaining("catchTypes");
   }
 }

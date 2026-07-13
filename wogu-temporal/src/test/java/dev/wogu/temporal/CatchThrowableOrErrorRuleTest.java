@@ -168,7 +168,12 @@ class CatchThrowableOrErrorRuleTest {
   }
 
   @Test
-  void flagsTheThrowableComponentOfAMultiCatch() throws IOException {
+  void flagsTheErrorComponentOfAMultiCatch() throws IOException {
+    // IOException | Throwable would not compile: JLS 14.20 forbids a multi-catch
+    // alternative that is a subclass of another alternative in the same clause, and
+    // IOException is a subclass of Throwable. Error is a sibling of Exception under
+    // Throwable, so IOException | Error is a valid, disjoint multi-catch that still
+    // exercises the same component-by-component matching.
     writeWorkflowInterface();
     writeJavaFile(
         "com/example/PaymentWorkflowImpl.java",
@@ -182,7 +187,7 @@ class CatchThrowableOrErrorRuleTest {
           public void process() {
             try {
               riskyStep();
-            } catch (IOException | Throwable t) {
+            } catch (IOException | Error t) {
               // swallowed
             }
           }
@@ -196,7 +201,7 @@ class CatchThrowableOrErrorRuleTest {
     assertThat(wg013.violations()).hasSize(1);
     assertThat(wg013.violations().get(0).callPath())
         .extracting(CallPathFrame::displayName)
-        .containsExactly("PaymentWorkflowImpl.process()", "catch (Throwable)");
+        .containsExactly("PaymentWorkflowImpl.process()", "catch (Error)");
   }
 
   @Test

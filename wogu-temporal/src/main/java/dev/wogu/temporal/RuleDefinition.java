@@ -48,6 +48,9 @@ import java.util.Objects;
  *     {@link dev.wogu.temporal.callgraph.ValueBasedEqualityArgumentTarget}): 0-based index
  *     of the {@code Class<T>} argument, on the single method named in {@link #methods()},
  *     whose resolved type must have real value-based equality; {@code null} for other types
+ * @param catchTypes for {@code forbidden-catch-type} rules: fully qualified names of
+ *     exception types that must not be caught in code reachable from a workflow entry
+ *     point, e.g. {@code "java.lang.Throwable"}; empty for other types
  * @param tags free-form labels, reserved for future use (not yet rendered anywhere)
  */
 record RuleDefinition(
@@ -66,6 +69,7 @@ record RuleDefinition(
     List<String> suppressedContexts,
     List<String> requiredContexts,
     Integer valueTypeArgumentIndex,
+    List<String> catchTypes,
     List<String> tags) {
 
   RuleDefinition {
@@ -83,6 +87,7 @@ record RuleDefinition(
     constructors = List.copyOf(Objects.requireNonNull(constructors, "constructors"));
     suppressedContexts = List.copyOf(Objects.requireNonNull(suppressedContexts, "suppressedContexts"));
     requiredContexts = List.copyOf(Objects.requireNonNull(requiredContexts, "requiredContexts"));
+    catchTypes = List.copyOf(Objects.requireNonNull(catchTypes, "catchTypes"));
     tags = List.copyOf(Objects.requireNonNull(tags, "tags"));
   }
 

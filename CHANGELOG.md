@@ -20,6 +20,22 @@ project adheres to [Semantic Versioning](https://semver.org/) (see
 
 ### Added
 
+- **WG013 — Catching Throwable or Error in workflow code** (Determinism). Flags
+  `catch (Throwable ...)`/`catch (Error ...)` reachable from a workflow entry point,
+  including a multi-catch's individual component types: the SDK uses unchecked `Error`
+  subclasses internally for cancellation and workflow-task-failure control flow, and a
+  bare `Throwable`/`Error` catch swallows those signals along with everything else. A third
+  new declarative rule type, `forbidden-catch-type`, alongside `forbidden-method` and
+  `mutable-side-effect-equality`: a `catch` clause's caught type is neither a method call
+  nor a constructor call, so it's not something any existing `CallTarget` can match.
+  `CallGraphAnalyzer` gains `findCaughtTypeMatches`, a new traversal method reusing all of
+  `findCallPaths`'s existing path/visiting/context bookkeeping (`recordMatch`,
+  `effectiveContext`, `resolveToSource`) without touching `search()` itself.
+  `TemporalRuleSupport.findViolations` is refactored to split its filter-and-convert step
+  into a reusable `toViolations(List<CallGraphMatch>, ...)`, so `ForbiddenCatchTypeRule`
+  shares the exact same `suppressedContexts`/`requiredContexts` handling
+  `ForbiddenMethodRule` uses instead of a third copy of that logic. `docs/rules/WG013.md`
+  documents it.
 - **WG012 — MutableSideEffect with reference-equality value type** (Determinism). Flags
   `Workflow.mutableSideEffect(id, valueClass, updateFunction, func)` calls whose value type
   relies on inherited, identity-based `Object.equals()` — since `func` constructs a new

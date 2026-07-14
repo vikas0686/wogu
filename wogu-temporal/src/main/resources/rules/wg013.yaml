@@ -1,0 +1,25 @@
+id: WG013
+type: forbidden-catch-type
+title: Catching Throwable or Error in workflow code
+category: Determinism
+severity: ERROR
+engine: Temporal Java SDK
+since: 1.0.0
+documentation: https://github.com/vikas0686/wogu/tree/main/docs/rules/WG013.md
+
+description: >-
+  The Temporal SDK uses unchecked Error subclasses internally as control-flow
+  signals, including for cancellation and for the destroy path when a workflow
+  task fails deterministically. Catching Throwable or Error in workflow code
+  swallows those internal signals along with everything else, so a cancellation
+  can silently fail to propagate, or a workflow task that should safely
+  fail-and-retry instead limps forward in a corrupted state.
+
+replacement: >-
+  Catch specific checked or application exceptions (ActivityFailure, your own
+  business exceptions) instead of Throwable or Error. There is no legitimate
+  reason for workflow code to catch either directly.
+
+catchTypes:
+  - java.lang.Throwable
+  - java.lang.Error

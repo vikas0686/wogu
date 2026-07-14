@@ -85,6 +85,7 @@ final class RuleDefinitionLoader {
         stringList(data, "suppressedContexts"),
         stringList(data, "requiredContexts"),
         optionalInt(data, "valueTypeArgumentIndex"),
+        stringList(data, "catchTypes"),
         stringList(data, "tags"));
   }
 

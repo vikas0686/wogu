@@ -7,6 +7,10 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.nodeTypes.NodeWithSimpleName;
+import com.github.javaparser.ast.stmt.CatchClause;
+import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import com.github.javaparser.ast.type.ReferenceType;
+import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
 import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserMethodDeclaration;
 import dev.wogu.api.CallPathFrame;
@@ -122,6 +126,117 @@ public final class CallGraphAnalyzer {
         contextEntryPoints,
         ExecutionContext.NORMAL_WORKFLOW);
     return results;
+  }
+
+  /**
+   * Finds every {@code catch} clause reachable from {@code entryPoint} (however many
+   * method calls deep) whose caught type matches one of {@code caughtTypeNames} — checked
+   * the same way {@link ConstructorCallTarget} matches a constructor's type: an explicit
+   * import of the qualified name, a wildcard import of its package, no import needed for a
+   * {@code java.lang} type, or the fully qualified name written inline. A multi-catch
+   * (e.g. {@code catch (IOException | InterruptedException e)}) is checked component type
+   * by component type, so only the matching component is reported.
+   *
+   * <p>This exists alongside {@link #findCallPaths}, not as an overload of it, because a
+   * {@code catch} clause's type is neither a method call nor a constructor call — nothing
+   * {@link CallTarget} can match against — while everything else about "reachable from a
+   * workflow entry point, tracking {@link ExecutionContext}, however many hops deep" stays
+   * identical, so this reuses the same path/visiting/context bookkeeping.
+   *
+   * @param entryPoint the method to start traversal from
+   * @param caughtTypeNames fully qualified names of the types to flag when caught, e.g.
+   *     {@code "java.lang.Throwable"}
+   * @param traversalBoundary methods this traversal must not enter
+   * @param contextEntryPoints calls that establish an {@link ExecutionContext} for their
+   *     callback, the same as {@link #findCallPaths(MethodDeclaration, CallTarget, Predicate, List)}
+   * @return one match per matching {@code catch} clause found; empty if none are reachable
+   */
+  public List<CallGraphMatch> findCaughtTypeMatches(
+      MethodDeclaration entryPoint,
+      List<String> caughtTypeNames,
+      Predicate<MethodDeclaration> traversalBoundary,
+      List<ContextEntryPoint> contextEntryPoints) {
+    List<QualifiedClassNameMatcher> matchers = caughtTypeNames.stream().map(QualifiedClassNameMatcher::new).toList();
+    List<CallGraphMatch> results = new ArrayList<>();
+    Deque<CallPathFrame> path = new ArrayDeque<>();
+    path.addLast(frameFor(entryPoint, lineOf(entryPoint)));
+    Set<MethodDeclaration> visiting = Collections.newSetFromMap(new IdentityHashMap<>());
+    collectCaughtTypeMatches(
+        entryPoint, matchers, path, visiting, results, 0, traversalBoundary, contextEntryPoints, ExecutionContext.NORMAL_WORKFLOW);
+    return results;
+  }
+
+  private void collectCaughtTypeMatches(
+      MethodDeclaration method,
+      List<QualifiedClassNameMatcher> matchers,
+      Deque<CallPathFrame> path,
+      Set<MethodDeclaration> visiting,
+      List<CallGraphMatch> results,
+      int depth,
+      Predicate<MethodDeclaration> traversalBoundary,
+      List<ContextEntryPoint> contextEntryPoints,
+      ExecutionContext inheritedContext) {
+    if (traversalBoundary.test(method)) {
+      return;
+    }
+    if (depth > MAX_DEPTH || !visiting.add(method)) {
+      return;
+    }
+    try {
+      method
+          .findCompilationUnit()
+          .ifPresent(
+              unit -> {
+                for (CatchClause catchClause : method.findAll(CatchClause.class)) {
+                  ExecutionContext contextAtCatch =
+                      effectiveContext(catchClause, method, unit, contextEntryPoints, inheritedContext);
+                  for (ReferenceType caughtType : caughtTypesOf(catchClause)) {
+                    matchingType(matchers, caughtType, unit)
+                        .ifPresent(matcher -> recordMatch(
+                            "catch (" + matcher.simpleClassName() + ")",
+                            unit,
+                            caughtType,
+                            path,
+                            results,
+                            method,
+                            contextAtCatch));
+                  }
+                }
+                for (MethodCallExpr call : method.findAll(MethodCallExpr.class)) {
+                  ExecutionContext contextAtCall =
+                      effectiveContext(call, method, unit, contextEntryPoints, inheritedContext);
+                  resolveToSource(call).ifPresent(resolved -> {
+                    path.addLast(frameFor(resolved, lineOf(call)));
+                    collectCaughtTypeMatches(
+                        resolved, matchers, path, visiting, results, depth + 1, traversalBoundary, contextEntryPoints,
+                        contextAtCall);
+                    path.removeLast();
+                  });
+                }
+              });
+    } finally {
+      visiting.remove(method);
+    }
+  }
+
+  /**
+   * A {@code catch} clause's individual caught types: a single-element list for an
+   * ordinary catch, or one element per alternative for a multi-catch (e.g.
+   * {@code catch (IOException | InterruptedException e)}).
+   */
+  private static List<ReferenceType> caughtTypesOf(CatchClause catchClause) {
+    Type type = catchClause.getParameter().getType();
+    return type.isUnionType() ? type.asUnionType().getElements() : List.of((ReferenceType) type);
+  }
+
+  private static Optional<QualifiedClassNameMatcher> matchingType(
+      List<QualifiedClassNameMatcher> matchers, ReferenceType caughtType, CompilationUnit unit) {
+    if (!(caughtType instanceof ClassOrInterfaceType classType)) {
+      return Optional.empty();
+    }
+    String writtenSimpleName = classType.getScope().isPresent() ? "" : classType.getNameAsString();
+    String writtenFullText = classType.toString();
+    return matchers.stream().filter(matcher -> matcher.matches(writtenSimpleName, writtenFullText, unit)).findFirst();
   }
 
   private void search(

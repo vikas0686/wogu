@@ -216,6 +216,53 @@ class RuleDefinitionLoaderTest {
   }
 
   @Test
+  void parsesCatchTypesWhenPresent() {
+    RuleDefinition definition =
+        loader.parse(
+            """
+            id: WG013
+            type: forbidden-catch-type
+            title: Example Rule
+            category: Determinism
+            severity: ERROR
+            engine: Temporal Java SDK
+            since: 1.0.0
+            documentation: docs/rules/WG013.md
+            description: Example description.
+            replacement: Example replacement.
+            catchTypes:
+              - java.lang.Throwable
+              - java.lang.Error
+            """,
+            "test.yaml");
+
+    assertThat(definition.catchTypes()).containsExactly("java.lang.Throwable", "java.lang.Error");
+  }
+
+  @Test
+  void defaultsCatchTypesToEmptyWhenAbsent() {
+    RuleDefinition definition =
+        loader.parse(
+            """
+            id: WG900
+            type: forbidden-method
+            title: Example Rule
+            category: Determinism
+            severity: ERROR
+            engine: Temporal Java SDK
+            since: 0.2.0
+            documentation: docs/rules/WG900.md
+            description: Example description.
+            replacement: Example replacement.
+            methods:
+              - java.util.UUID.randomUUID
+            """,
+            "test.yaml");
+
+    assertThat(definition.catchTypes()).isEmpty();
+  }
+
+  @Test
   void rejectsADefinitionMissingARequiredField() {
     String missingSeverity =
         """
@@ -253,13 +300,17 @@ class RuleDefinitionLoaderTest {
         .extracting(RuleDefinition::id)
         .containsExactlyInAnyOrder(
             "WG001", "WG002", "WG003", "WG004", "WG005", "WG006", "WG007", "WG008", "WG009", "WG010", "WG011",
-            "WG012");
+            "WG012", "WG013");
     assertThat(definitions)
-        .filteredOn(definition -> !definition.id().equals("WG012"))
+        .filteredOn(definition -> !definition.id().equals("WG012") && !definition.id().equals("WG013"))
         .allSatisfy(definition -> assertThat(definition.type()).isEqualTo("forbidden-method"));
     assertThat(definitions)
         .filteredOn(definition -> definition.id().equals("WG012"))
         .singleElement()
         .satisfies(definition -> assertThat(definition.type()).isEqualTo("mutable-side-effect-equality"));
+    assertThat(definitions)
+        .filteredOn(definition -> definition.id().equals("WG013"))
+        .singleElement()
+        .satisfies(definition -> assertThat(definition.type()).isEqualTo("forbidden-catch-type"));
   }
 }
